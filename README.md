@@ -13,7 +13,7 @@ This project is an AI-powered tool that connects to your GitHub profile via the 
 - Easy to run locally with just your GitHub and OpenAI API keys
 
 ## Great for:
-- Anyone looking to enhance their developer portfolio and stand out in job applications or on GitHub.
+Anyone looking to enhance their developer portfolio and stand out in job applications or on GitHub.
 
 ## Security Note:
-- API keys are stored locally and ignored in version control for your privacy. Never share or commit your keys.
+API keys are stored locally and ignored in version control for your privacy. Never share or commit your keys.
