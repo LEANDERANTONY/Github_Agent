@@ -1,2 +1,7 @@
 openai
 requests
+PyGithub
+streamlit
+python-docx
+reportlab==3.6.12
+
