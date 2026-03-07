@@ -1,0 +1,229 @@
+from concurrent.futures import ThreadPoolExecutor
+
+from src.config import REPO_ANALYSIS_MAX_WORKERS
+from src.github_client import get_portfolio_repo_facts
+from src.openai_service import analyze_repo, polish_portfolio_report, summarize_portfolio
+from src.repo_checks import build_portfolio_score, run_repo_checks
+from src.schemas import PortfolioReport, PortfolioSummary, RepoAudit
+
+
+def _update_progress(progress_callback, message, value):
+    if progress_callback:
+        progress_callback(message, value)
+
+
+def _format_markdown_report(report):
+    if report.repo_count == 1 and report.repo_audits:
+        repo_audit = report.repo_audits[0]
+        repo_check = report.repo_checks[0]
+        lines = [
+            "# GitHub Repository Audit",
+            "",
+            "## Repository Score",
+            "{score}/100 ({label})".format(
+                score=repo_check.score.overall,
+                label=repo_check.score.label,
+            ),
+            "",
+            "## Repository Summary",
+            repo_audit.summary or "No summary generated.",
+            "",
+            "**What It Does**",
+            repo_audit.what_it_does or "Not enough information.",
+            "",
+            "**Score Breakdown**",
+        ]
+        for category, score in repo_check.score.category_scores.items():
+            lines.append("- {category}: {score}/100".format(category=category, score=score))
+        lines.extend(
+            [
+                "",
+                "**Key Technologies**",
+            ]
+        )
+        technologies = repo_audit.key_technologies or ["Not identified."]
+        lines.extend("- {item}".format(item=item) for item in technologies)
+        lines.extend(["", "## Strengths"])
+        strengths = repo_audit.strengths or ["No strengths generated."]
+        lines.extend("- {item}".format(item=item) for item in strengths)
+        lines.extend(["", "## Weaknesses"])
+        weaknesses = repo_audit.weaknesses or ["No weaknesses generated."]
+        lines.extend("- {item}".format(item=item) for item in weaknesses)
+        lines.extend(["", "## Top Priority Actions"])
+        recommendations = repo_audit.recommendations or ["No recommendations generated."]
+        lines.extend("- {item}".format(item=item) for item in recommendations)
+        lines.extend(
+            [
+                "",
+                "**Showcase Value**",
+                repo_audit.showcase_value or "Not rated.",
+                "",
+                "**Recruiter Signal**",
+                repo_audit.recruiter_signal or "Not rated.",
+                "",
+                "## Deterministic Findings",
+            ]
+        )
+        findings = repo_check.findings or ["No deterministic findings."]
+        lines.extend("- {item}".format(item=item) for item in findings)
+        return "\n".join(lines).strip()
+
+    lines = [
+        "# GitHub Portfolio Audit",
+        "",
+        "## Portfolio Score",
+        "{score}/100 ({label})".format(
+            score=report.portfolio_score.overall,
+            label=report.portfolio_score.label,
+        ),
+        "",
+        "### Score Breakdown",
+    ]
+    for category, score in report.portfolio_score.category_scores.items():
+        lines.append("- {category}: {score}/100".format(category=category, score=score))
+    lines.extend(["", "## Portfolio Summary", report.portfolio_summary.summary, "", "### Strongest Repositories"])
+
+    strongest_repos = report.portfolio_summary.strongest_repos or ["No strongest repositories identified."]
+    lines.extend("- {item}".format(item=item) for item in strongest_repos)
+    lines.extend(["", "### Improvement Areas"])
+
+    improvement_areas = report.portfolio_summary.improvement_areas or ["No improvement areas identified."]
+    lines.extend("- {item}".format(item=item) for item in improvement_areas)
+    lines.extend(["", "### Top Actions"])
+
+    top_actions = report.portfolio_summary.top_actions or ["No top actions identified."]
+    lines.extend("- {item}".format(item=item) for item in top_actions)
+    lines.extend(["", "## Repository Audits"])
+
+    for repo_audit, repo_check in zip(report.repo_audits, report.repo_checks):
+        lines.extend(
+            [
+                "",
+                "### {name}".format(name=repo_audit.repo_name),
+                "",
+                "**Score**",
+                "{score}/100 ({label})".format(
+                    score=repo_check.score.overall,
+                    label=repo_check.score.label,
+                ),
+                "",
+                "**Summary**",
+                repo_audit.summary or "No summary generated.",
+                "",
+                "**What It Does**",
+                repo_audit.what_it_does or "Not enough information.",
+                "",
+                "**Key Technologies**",
+            ]
+        )
+        technologies = repo_audit.key_technologies or ["Not identified."]
+        lines.extend("- {item}".format(item=item) for item in technologies)
+        lines.extend(["", "**Strengths**"])
+        strengths = repo_audit.strengths or ["No strengths generated."]
+        lines.extend("- {item}".format(item=item) for item in strengths)
+        lines.extend(["", "**Weaknesses**"])
+        weaknesses = repo_audit.weaknesses or ["No weaknesses generated."]
+        lines.extend("- {item}".format(item=item) for item in weaknesses)
+        lines.extend(["", "**Recommendations**"])
+        recommendations = repo_audit.recommendations or ["No recommendations generated."]
+        lines.extend("- {item}".format(item=item) for item in recommendations)
+        lines.extend(
+            [
+                "",
+                "**Showcase Value**",
+                repo_audit.showcase_value or "Not rated.",
+                "",
+                "**Recruiter Signal**",
+                repo_audit.recruiter_signal or "Not rated.",
+                "",
+                "**Deterministic Findings**",
+            ]
+        )
+        findings = repo_check.findings or ["No deterministic findings."]
+        lines.extend("- {item}".format(item=item) for item in findings)
+
+    return "\n".join(lines).strip()
+
+
+def _fallback_repo_audit(repo_fact, repo_check, error):
+    fallback_recommendations = repo_check.findings[:3] or [
+        "Retry the LLM analysis after checking API availability."
+    ]
+    return RepoAudit(
+        repo_name=repo_fact.name,
+        summary="Automated repo analysis was unavailable for this repository.",
+        what_it_does=repo_fact.description,
+        key_technologies=list(repo_fact.languages.keys())[:5],
+        strengths=repo_check.strengths[:5],
+        weaknesses=repo_check.findings[:5],
+        recommendations=fallback_recommendations,
+        showcase_value="Not rated because the LLM analysis step failed.",
+        recruiter_signal="LLM analysis unavailable: {error}".format(error=str(error)),
+    )
+
+
+def _analyze_repo_pair(repo_fact, repo_check):
+    try:
+        return analyze_repo(repo_fact, repo_check)
+    except Exception as error:
+        return _fallback_repo_audit(repo_fact, repo_check, error)
+
+
+def build_portfolio_feedback(
+    github_username="",
+    selected_repo_names=None,
+    max_repos=None,
+    skip_forks=False,
+    repo_facts=None,
+    progress_callback=None,
+):
+    normalized_username = (github_username or "").strip()
+    _update_progress(progress_callback, "Fetching repository facts...", 10)
+    if repo_facts is None:
+        repo_facts = get_portfolio_repo_facts(
+            username=normalized_username or None,
+            selected_repo_names=selected_repo_names,
+            max_repos=max_repos,
+            skip_forks=skip_forks,
+        )
+
+    _update_progress(progress_callback, "Running deterministic checks...", 30)
+    repo_checks = [run_repo_checks(repo_fact) for repo_fact in repo_facts]
+    max_workers = min(REPO_ANALYSIS_MAX_WORKERS, max(1, len(repo_facts)))
+
+    _update_progress(progress_callback, "Generating repository analyses...", 55)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        repo_audits = list(
+            executor.map(
+                _analyze_repo_pair,
+                repo_facts,
+                repo_checks,
+            )
+        )
+
+    portfolio_summary = PortfolioSummary()
+    analysis_label = "Selected Repository Analysis" if len(repo_facts) == 1 else "Portfolio Analysis"
+
+    if len(repo_audits) > 1:
+        _update_progress(progress_callback, "Generating portfolio summary...", 75)
+        portfolio_summary = summarize_portfolio(repo_audits, repo_checks)
+
+    report = PortfolioReport(
+        github_username=normalized_username or "my",
+        repo_count=len(repo_facts),
+        feedback_markdown="",
+        analysis_label=analysis_label,
+        repo_facts=repo_facts,
+        repo_checks=repo_checks,
+        repo_audits=repo_audits,
+        portfolio_summary=portfolio_summary,
+        portfolio_score=build_portfolio_score(repo_checks),
+    )
+    fallback_markdown = _format_markdown_report(report)
+    _update_progress(progress_callback, "Polishing final report...", 90)
+    try:
+        report.feedback_markdown = polish_portfolio_report(report)
+    except Exception:
+        report.feedback_markdown = fallback_markdown
+    _update_progress(progress_callback, "Analysis complete.", 100)
+    return report

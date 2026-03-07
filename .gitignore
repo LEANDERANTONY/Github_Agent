@@ -209,4 +209,10 @@ __marimo__/
 # keys
 github_token.txt
 openai_key.txt
+anthropic_key.txt
 .env
+
+# local notes and logs
+Github_Agent.txt
+streamlit.log
+streamlit.err.log
