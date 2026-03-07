@@ -1,70 +1,58 @@
-# 🛠️ DEVLOG.md – GitHub Portfolio Reviewer Agent
+# DEVLOG.md - GitHub Portfolio Reviewer Agent
 
-This log tracks the technical improvements, design decisions, and implementation challenges addressed during development.
-
----
-
-## 📅 August 1, 2025 – Streamlit Frontend Integration & Export System
-
-### ✅ Goals Achieved:
-- Integrated a **Streamlit web interface** to interact with the GitHub Portfolio Reviewer agent.
-- Enabled **public usage** with minimal user input:
-  - No need for OpenAI key input (uses internal key).
-  - GitHub token optional (reads from `github_token.txt` if user skips input).
-- Allowed users to **download GPT-4o suggestions** in various formats:
-  - `.md` (Markdown)
-  - `.txt` (Plain Text)
-  - `.docx` (Word)
-  - `.pdf` (PDF via ReportLab)
+This log tracks the major implementation milestones for the current modular Streamlit app.
 
 ---
 
-### 🧩 Design Challenges & Fixes
+## March 7, 2026 - Modular Audit Pipeline
 
-#### 1. 📄 File Export Issues
-- **Issue**: PDF output was broken due to `usedforsecurity` error in `reportlab 4.x`.
-- **Fix**: Downgraded to `reportlab==3.6.12` to restore compatibility with `canvas()` method.
+Implemented the current application architecture:
 
-#### 2. 🧾 PDF Formatting (Option 2: ReportLab Platypus)
-- Switched to `reportlab.platypus` for better paragraph styling.
-- Added three custom styles:
-  - `CustomBold` for headings and section titles
-  - `CustomBody` for general paragraph text
-  - `CustomBullet` for bullet points
-- Stripped all markdown `**bold**` syntax for clean formatting.
-- Ensured **headings are larger than body text**.
-- Added spacing between sections for readability.
+- moved GitHub API logic into `src/github_client.py`
+- moved deterministic checks into `src/repo_checks.py`
+- moved prompt and OpenAI logic into `src/prompts.py` and `src/openai_service.py`
+- added shared schemas in `src/schemas.py`
+- added orchestration in `src/report_builder.py`
+- kept `app.py` focused on Streamlit UI and flow control
 
-#### 3. ⚠️ Formatting Edge Cases
-- Markdown-like formatting (e.g., `**bold**`) was showing asterisks literally.
-- Solution: Replaced all instances of `**` before parsing to clean up output.
+This replaced the earlier single-file prototype and made the app testable and easier to extend.
 
----
+## March 7, 2026 - Scoped Analysis and Scoring
 
-## 🧱 Architecture & UX Improvements
+Added the main user-facing audit features:
 
-### 🔄 Persistent Suggestions
-- Switched to `st.session_state.feedback` so that suggestions:
-  - Remain visible after download
-  - Do not disappear unless the app is refreshed
+- single-repository analysis
+- selected-repository analysis
+- portfolio-slice analysis
+- deterministic scoring across documentation, discoverability, engineering, maintenance, and originality
+- portfolio-level summary plus per-repo audits
 
-### 🧩 Clean Download UX
-- Added a selectbox with label `📁 Choose download format`.
-- Download button auto-generates filename:
-  - e.g., `my_portfolio_suggestions.pdf` or `torvalds_portfolio_suggestions.md`
+The output is now structured enough to be used as a real GitHub improvement plan instead of a generic LLM summary.
 
-### 📂 File Organization
-- `DEVLOG.md` now added to project root for visibility.
-- Modular functions split into:
-  - `generate_pdf()`, `generate_docx()`, etc.
-  - Future enhancements will move utils to `/utils/` folder.
+## March 7, 2026 - UI and Export Cleanup
 
----
+Improved the Streamlit experience and export flow:
 
-## ⏭️ Next Steps (Planned)
-- GitHub OAuth login instead of requiring token.
-- Add branding: logo header, custom colors in PDF.
-- Host public-facing version on Streamlit Cloud or Hugging Face Spaces.
+- polished the audit dashboard layout
+- fixed broken HTML/CSS rendering issues in the UI
+- simplified audit labels to `Findings` and `Positive Signals`
+- reduced download formats to Markdown and PDF
+- rebuilt PDF export to handle headings, paragraphs, and bullet lists more cleanly
+
+## March 8, 2026 - Repository Cleanup
+
+Removed obsolete files from the older prototype:
+
+- deleted the legacy CLI script `analyze_github_profile.py`
+- deleted `generate_suggestions_files.py`
+- deleted the tracked `suggestions/` markdown artifacts
+- updated root documentation so it reflects the current app instead of the initial prototype
 
 ---
 
+## Next Steps
+
+- GitHub OAuth for real-user authorization
+- deployment setup for public usage
+- further PDF/report-template polish
+- broader tests around GitHub parsing and model failure handling

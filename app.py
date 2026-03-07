@@ -1,210 +1,247 @@
 import html
+import textwrap
 
 import streamlit as st
 
-from src.exporters import generate_docx, generate_markdown, generate_pdf, generate_txt
+from src.exporters import generate_markdown, generate_pdf
 from src.github_client import get_github_repos, get_portfolio_repo_facts
 from src.report_builder import build_portfolio_feedback
 
 
 def _inject_styles():
     st.markdown(
-        """
-        <style>
-        :root {
-            --paper: #f5efe1;
-            --ink: #1f2933;
-            --muted: #52606d;
-            --card: rgba(255, 252, 247, 0.88);
-            --line: rgba(31, 41, 51, 0.12);
-            --accent: #0f766e;
-            --accent-2: #c2410c;
-            --success: #166534;
-            --warning: #b45309;
-            --danger: #b91c1c;
-            --shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-        }
+        textwrap.dedent(
+            """
+            <style>
+            :root {
+                --paper: #f5efe1;
+                --ink: #1f2933;
+                --muted: #52606d;
+                --card: rgba(255, 252, 247, 0.9);
+                --line: rgba(31, 41, 51, 0.12);
+                --accent: #0f766e;
+                --success: #166534;
+                --warning: #b45309;
+                --danger: #b91c1c;
+                --shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+            }
 
-        .stApp {
-            background:
-                radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
-                radial-gradient(circle at top right, rgba(194, 65, 12, 0.12), transparent 25%),
-                linear-gradient(180deg, #f7f1e4 0%, #f2ebdc 100%);
-        }
+            .stApp {
+                background:
+                    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
+                    radial-gradient(circle at top right, rgba(194, 65, 12, 0.12), transparent 25%),
+                    linear-gradient(180deg, #f7f1e4 0%, #f2ebdc 100%);
+            }
 
-        .block-container {
-            max-width: 1180px;
-            padding-top: 2.4rem;
-            padding-bottom: 3rem;
-        }
-
-        h1, h2, h3 {
-            color: var(--ink);
-            letter-spacing: -0.02em;
-        }
-
-        .audit-hero {
-            background: linear-gradient(135deg, rgba(255,255,255,0.82), rgba(245,239,225,0.92));
-            border: 1px solid var(--line);
-            border-radius: 24px;
-            padding: 1.4rem 1.5rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 1rem;
-        }
-
-        .audit-kicker {
-            text-transform: uppercase;
-            letter-spacing: 0.16em;
-            font-size: 0.72rem;
-            color: var(--accent);
-            font-weight: 700;
-            margin-bottom: 0.35rem;
-        }
-
-        .audit-copy {
-            color: var(--muted);
-            font-size: 1rem;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        .stat-card {
-            background: var(--card);
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 1rem 1rem 0.9rem;
-            box-shadow: var(--shadow);
-            min-height: 130px;
-        }
-
-        .stat-label {
-            font-size: 0.74rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--muted);
-            margin-bottom: 0.35rem;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--ink);
-            line-height: 1;
-            margin-bottom: 0.45rem;
-        }
-
-        .stat-note {
-            color: var(--muted);
-            font-size: 0.96rem;
-            line-height: 1.5;
-        }
-
-        .score-pill {
-            display: inline-block;
-            padding: 0.32rem 0.7rem;
-            border-radius: 999px;
-            font-size: 0.84rem;
-            font-weight: 700;
-            margin-top: 0.18rem;
-        }
-
-        .pill-excellent { background: rgba(22, 101, 52, 0.12); color: var(--success); }
-        .pill-strong { background: rgba(15, 118, 110, 0.12); color: var(--accent); }
-        .pill-fair { background: rgba(180, 83, 9, 0.12); color: var(--warning); }
-        .pill-needs { background: rgba(185, 28, 28, 0.12); color: var(--danger); }
-
-        .section-card {
-            background: var(--card);
-            border: 1px solid var(--line);
-            border-radius: 20px;
-            padding: 1rem 1.1rem;
-            box-shadow: var(--shadow);
-            height: 100%;
-        }
-
-        .section-title {
-            font-size: 0.86rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--muted);
-            margin-bottom: 0.65rem;
-            font-weight: 700;
-        }
-
-        .score-chip-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-            gap: 0.7rem;
-            margin: 0.45rem 0 1rem;
-        }
-
-        .score-chip {
-            background: rgba(255,255,255,0.62);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 0.8rem 0.85rem;
-        }
-
-        .score-chip-label {
-            font-size: 0.74rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--muted);
-            margin-bottom: 0.25rem;
-        }
-
-        .score-chip-value {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--ink);
-        }
-
-        .repo-shell {
-            background: rgba(255,255,255,0.52);
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 1rem;
-            margin-bottom: 0.9rem;
-        }
-
-        .repo-shell h4 {
-            margin: 0 0 0.25rem;
-            font-size: 1.15rem;
-            color: var(--ink);
-        }
-
-        .repo-meta {
-            color: var(--muted);
-            font-size: 0.92rem;
-        }
-
-        .stExpander {
-            border: 1px solid var(--line) !important;
-            border-radius: 18px !important;
-            background: rgba(255,255,255,0.55) !important;
-            overflow: hidden;
-        }
-
-        .stExpander details summary p {
-            font-weight: 700;
-            color: var(--ink);
-        }
-
-        @media (max-width: 900px) {
             .block-container {
-                padding-top: 1.4rem;
+                max-width: 1180px;
+                padding-top: 2.4rem;
+                padding-bottom: 3rem;
+            }
+
+            .stApp,
+            .stMarkdown,
+            .stMarkdown p,
+            .stMarkdown li,
+            .stCaption,
+            [data-testid="stMarkdownContainer"] p,
+            [data-testid="stMarkdownContainer"] li,
+            [data-testid="stWidgetLabel"] p,
+            [data-testid="stRadio"] label,
+            [data-testid="stCheckbox"] label,
+            [data-testid="stFileUploaderDropzoneInstructions"] {
+                color: var(--ink);
+            }
+
+            h1, h2, h3, h4 {
+                color: var(--ink);
+                letter-spacing: -0.02em;
             }
 
             .audit-hero {
-                padding: 1.05rem;
+                background: linear-gradient(135deg, rgba(255,255,255,0.82), rgba(245,239,225,0.92));
+                border: 1px solid var(--line);
+                border-radius: 24px;
+                padding: 1.4rem 1.5rem;
+                box-shadow: var(--shadow);
+                margin-bottom: 1rem;
             }
 
-            .stat-value {
-                font-size: 1.7rem;
+            .audit-kicker {
+                text-transform: uppercase;
+                letter-spacing: 0.16em;
+                font-size: 0.72rem;
+                color: var(--accent);
+                font-weight: 700;
+                margin-bottom: 0.35rem;
             }
-        }
-        </style>
-        """,
+
+            .audit-copy {
+                color: var(--muted);
+                font-size: 1rem;
+                line-height: 1.6;
+                margin: 0;
+            }
+
+            .repo-shell {
+                background: rgba(255,255,255,0.56);
+                border: 1px solid var(--line);
+                border-radius: 18px;
+                padding: 1rem;
+                margin-bottom: 0.9rem;
+                box-shadow: var(--shadow);
+            }
+
+            .repo-shell h4 {
+                margin: 0 0 0.25rem;
+                font-size: 1.15rem;
+                color: var(--ink);
+            }
+
+            .repo-meta {
+                color: var(--muted);
+                font-size: 0.92rem;
+            }
+
+            .metric-card {
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 18px;
+                padding: 1rem 1rem 0.9rem;
+                box-shadow: var(--shadow);
+                min-height: 138px;
+                margin-bottom: 0.8rem;
+            }
+
+            .metric-label {
+                font-size: 0.74rem;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--muted);
+                margin-bottom: 0.35rem;
+                font-weight: 700;
+            }
+
+            .metric-value {
+                font-size: 2rem;
+                font-weight: 800;
+                color: var(--ink);
+                line-height: 1.08;
+                margin-bottom: 0.45rem;
+            }
+
+            .metric-value-copy {
+                font-size: 1.05rem;
+                font-weight: 600;
+                color: var(--ink);
+                line-height: 1.55;
+                margin-bottom: 0.6rem;
+            }
+
+            .metric-note {
+                color: var(--muted);
+                font-size: 0.95rem;
+                line-height: 1.55;
+            }
+
+            .score-pill {
+                display: inline-block;
+                padding: 0.32rem 0.7rem;
+                border-radius: 999px;
+                font-size: 0.84rem;
+                font-weight: 700;
+                margin-top: 0.1rem;
+                margin-bottom: 0.6rem;
+            }
+
+            .pill-excellent { background: rgba(22, 101, 52, 0.12); color: var(--success); }
+            .pill-strong { background: rgba(15, 118, 110, 0.12); color: var(--accent); }
+            .pill-fair { background: rgba(180, 83, 9, 0.12); color: var(--warning); }
+            .pill-needs { background: rgba(185, 28, 28, 0.12); color: var(--danger); }
+
+            .stExpander {
+                border: 1px solid var(--line) !important;
+                border-radius: 18px !important;
+                background: rgba(255,255,255,0.55) !important;
+                overflow: hidden;
+            }
+
+            .stExpander details summary p {
+                font-weight: 700;
+                color: var(--ink);
+            }
+
+            .stTextInput input,
+            .stTextArea textarea,
+            div[data-baseweb="input"] input,
+            div[data-baseweb="base-input"] input,
+            div[data-baseweb="select"] > div,
+            div[data-baseweb="select"] input {
+                background: rgba(255, 255, 255, 0.95) !important;
+                color: var(--ink) !important;
+            }
+
+            .stTextInput input::placeholder,
+            .stTextArea textarea::placeholder,
+            div[data-baseweb="input"] input::placeholder,
+            div[data-baseweb="base-input"] input::placeholder,
+            div[data-baseweb="select"] input::placeholder {
+                color: var(--muted) !important;
+                opacity: 1 !important;
+            }
+
+            div[data-baseweb="select"] svg,
+            div[data-baseweb="input"] svg,
+            div[data-baseweb="base-input"] svg {
+                fill: var(--ink) !important;
+            }
+
+            div[role="listbox"],
+            div[role="option"] {
+                background: rgba(255, 255, 255, 0.98) !important;
+                color: var(--ink) !important;
+            }
+
+            [data-baseweb="tag"] {
+                background: rgba(15, 118, 110, 0.12) !important;
+                color: var(--ink) !important;
+            }
+
+            .stButton > button,
+            .stDownloadButton > button {
+                background: #1f2937 !important;
+                color: #f8fafc !important;
+                border: 1px solid #1f2937 !important;
+            }
+
+            .stButton > button *,
+            .stDownloadButton > button * {
+                color: #f8fafc !important;
+            }
+
+            .stButton > button:hover,
+            .stDownloadButton > button:hover {
+                background: #111827 !important;
+                color: #f8fafc !important;
+                border-color: #111827 !important;
+            }
+
+            @media (max-width: 900px) {
+                .block-container {
+                    padding-top: 1.4rem;
+                }
+
+                .audit-hero {
+                    padding: 1.05rem;
+                }
+
+                .metric-value {
+                    font-size: 1.7rem;
+                }
+            }
+            </style>
+            """
+        ).strip(),
         unsafe_allow_html=True,
     )
 
@@ -220,83 +257,88 @@ def _score_pill_class(label):
     return "pill-needs"
 
 
+def _escape(value):
+    return html.escape(str(value or ""))
+
+
 def _render_intro():
     st.markdown(
-        """
-        <div class="audit-hero">
-            <div class="audit-kicker">Portfolio Auditor</div>
-            <h1 style="margin:0 0 0.45rem 0;">GitHub Portfolio Reviewer Agent</h1>
-            <p class="audit-copy">
-                Load a GitHub profile, pick the analysis scope, and generate a recruiter-facing
-                audit with deterministic checks, repository scoring, and model-written feedback.
-            </p>
-        </div>
-        """,
+        textwrap.dedent(
+            """
+            <div class="audit-hero">
+                <div class="audit-kicker">Portfolio Auditor</div>
+                <h1 style="margin:0 0 0.45rem 0;">GitHub Portfolio Reviewer Agent</h1>
+                <p class="audit-copy">
+                    Load a GitHub profile, pick the analysis scope, and generate a recruiter-facing
+                    audit with deterministic checks, repository scoring, and model-written feedback.
+                </p>
+            </div>
+            """
+        ).strip(),
         unsafe_allow_html=True,
     )
 
 
-def _render_stat_card(label, value, note, label_badge=None):
-    safe_label = html.escape(str(label))
-    safe_value = html.escape(str(value))
-    safe_note = html.escape(str(note))
+def _render_metric_card(label, value, note, label_badge=None, emphasize=False):
     badge_html = ""
     if label_badge:
         badge_html = '<div class="score-pill {klass}">{label}</div>'.format(
             klass=_score_pill_class(label_badge),
-            label=html.escape(str(label_badge)),
+            label=_escape(label_badge),
         )
+
+    value_class = "metric-value-copy" if emphasize else "metric-value"
+    card_html = "".join(
+        [
+            '<div class="metric-card">',
+            '<div class="metric-label">{label}</div>'.format(label=_escape(label)),
+            '<div class="{value_class}">{value}</div>'.format(
+                value_class=value_class,
+                value=_escape(value),
+            ),
+            badge_html,
+            '<div class="metric-note">{note}</div>'.format(note=_escape(note)),
+            "</div>",
+        ]
+    )
     st.markdown(
-        """
-        <div class="stat-card">
-            <div class="stat-label">{label}</div>
-            <div class="stat-value">{value}</div>
-            {badge}
-            <div class="stat-note">{note}</div>
-        </div>
-        """.format(label=safe_label, value=safe_value, note=safe_note, badge=badge_html),
+        card_html,
         unsafe_allow_html=True,
     )
 
 
 def _render_score_breakdown(score_summary, title="Score Breakdown"):
-    st.markdown(
-        '<div class="section-title">{title}</div>'.format(title=title),
-        unsafe_allow_html=True,
-    )
-    chips = []
-    for category, score in score_summary.category_scores.items():
-        chips.append(
-            """
-            <div class="score-chip">
-                <div class="score-chip-label">{category}</div>
-                <div class="score-chip-value">{score}/100</div>
-            </div>
-            """.format(category=category, score=score)
-        )
-    st.markdown(
-        '<div class="score-chip-grid">{chips}</div>'.format(chips="".join(chips)),
-        unsafe_allow_html=True,
-    )
+    st.markdown("#### {title}".format(title=title))
+    items = list(score_summary.category_scores.items())
+    if not items:
+        st.caption("No score breakdown available.")
+        return
+
+    for start in range(0, len(items), 3):
+        chunk = items[start : start + 3]
+        cols = st.columns(len(chunk))
+        for col, (category, score) in zip(cols, chunk):
+            with col:
+                _render_metric_card(category, "{score}/100".format(score=score), "Category score")
 
 
 def _render_bullet_panel(title, items, empty_text):
-    st.markdown('<div class="section-title">{title}</div>'.format(title=title), unsafe_allow_html=True)
+    st.markdown("#### {title}".format(title=title))
     values = items or [empty_text]
     for item in values:
-        st.markdown(f"- {item}")
+        st.markdown("- {item}".format(item=item))
 
 
 def _render_repo_header(title, subtitle):
-    safe_title = html.escape(str(title))
-    safe_subtitle = html.escape(str(subtitle))
     st.markdown(
-        """
-        <div class="repo-shell">
-            <h4>{title}</h4>
-            <div class="repo-meta">{subtitle}</div>
-        </div>
-        """.format(title=safe_title, subtitle=safe_subtitle),
+        textwrap.dedent(
+            """
+            <div class="repo-shell">
+                <h4>{title}</h4>
+                <div class="repo-meta">{subtitle}</div>
+            </div>
+            """.format(title=_escape(title), subtitle=_escape(subtitle))
+        ).strip(),
         unsafe_allow_html=True,
     )
 
@@ -354,96 +396,85 @@ def _render_single_repo_report(report):
         "Single repository audit with recruiter-oriented feedback and deterministic checks.",
     )
 
-    hero_col1, hero_col2, hero_col3 = st.columns([1.1, 1.6, 1.6])
+    hero_col1, hero_col2, hero_col3 = st.columns([1.05, 1.5, 1.5])
     with hero_col1:
-        _render_stat_card(
+        _render_metric_card(
             "Repository Score",
             "{score}/100".format(score=repo_check.score.overall),
             "Weighted from documentation, discoverability, engineering, maintenance, and originality.",
             repo_check.score.label or "Not rated.",
         )
     with hero_col2:
-        _render_stat_card(
+        _render_metric_card(
             "Showcase Value",
             repo_audit.showcase_value or "Not rated",
             "How compelling this repo is as a portfolio artifact.",
+            emphasize=True,
         )
     with hero_col3:
-        _render_stat_card(
+        _render_metric_card(
             "Recruiter Signal",
             repo_audit.recruiter_signal or "Not rated",
             "What this repository likely communicates during a quick profile review.",
+            emphasize=True,
         )
 
     _render_score_breakdown(repo_check.score)
 
-    summary_col1, summary_col2 = st.columns([1.35, 1])
-    with summary_col1:
-        st.markdown("### Repository Summary")
-        st.write(repo_audit.summary or "No summary generated.")
-        st.markdown("#### What It Does")
-        st.write(repo_audit.what_it_does or "Not enough information.")
-    with summary_col2:
-        st.markdown("### Technologies")
-        technologies = repo_audit.key_technologies or ["Not identified."]
-        for item in technologies:
-            st.markdown(f"- {item}")
+    st.markdown("### Repository Summary")
+    st.write(repo_audit.summary or "No summary generated.")
+    st.markdown("#### What It Does")
+    st.write(repo_audit.what_it_does or "Not enough information.")
 
     panel_col1, panel_col2 = st.columns(2)
     with panel_col1:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         _render_bullet_panel("Strengths", repo_audit.strengths, "No strengths generated.")
-        st.markdown("</div>", unsafe_allow_html=True)
     with panel_col2:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         _render_bullet_panel("Weaknesses", repo_audit.weaknesses, "No weaknesses generated.")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     action_col1, action_col2 = st.columns(2)
     with action_col1:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         _render_bullet_panel(
             "Top Priority Actions",
             repo_audit.recommendations,
             "No recommendations generated.",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
     with action_col2:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         _render_bullet_panel(
-            "Deterministic Findings",
+            "Findings",
             repo_check.findings,
-            "No deterministic findings.",
+            "No findings.",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    _render_bullet_panel(
-        "Deterministic Good Signals",
-        repo_check.strengths,
-        "No deterministic strengths identified.",
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    final_col1, final_col2 = st.columns(2)
+    with final_col1:
+        _render_bullet_panel("Technologies", repo_audit.key_technologies, "Not identified.")
+    with final_col2:
+        _render_bullet_panel(
+            "Positive Signals",
+            repo_check.strengths,
+            "No positive signals identified.",
+        )
 
 
 def _render_portfolio_report(report):
-    hero_col1, hero_col2, hero_col3 = st.columns([1.1, 1.2, 1.2])
+    hero_col1, hero_col2, hero_col3 = st.columns([1.05, 1.15, 1.15])
     with hero_col1:
-        _render_stat_card(
+        _render_metric_card(
             "Portfolio Score",
             "{score}/100".format(score=report.portfolio_score.overall),
             "Averages deterministic repo scores across the selected analysis scope.",
             report.portfolio_score.label or "Not rated.",
         )
     with hero_col2:
-        _render_stat_card(
+        _render_metric_card(
             "Repositories Reviewed",
             str(report.repo_count),
             "Scope-aware count after filters, selection rules, and fork exclusions.",
         )
     with hero_col3:
         strongest_count = len(report.portfolio_summary.strongest_repos or [])
-        _render_stat_card(
+        _render_metric_card(
             "Standout Repos",
             str(strongest_count),
             "Repositories the model highlighted as the strongest signals in the portfolio.",
@@ -452,116 +483,82 @@ def _render_portfolio_report(report):
     _render_score_breakdown(report.portfolio_score)
 
     st.markdown("### Portfolio Summary")
-    st.markdown(report.portfolio_summary.summary or "No portfolio summary generated.")
+    st.write(report.portfolio_summary.summary or "No portfolio summary generated.")
 
     panel_col1, panel_col2, panel_col3 = st.columns(3)
     with panel_col1:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         _render_bullet_panel(
             "Strongest Repositories",
             report.portfolio_summary.strongest_repos,
             "No strongest repositories identified.",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
     with panel_col2:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         _render_bullet_panel(
             "Improvement Areas",
             report.portfolio_summary.improvement_areas,
             "No improvement areas identified.",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
     with panel_col3:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
         _render_bullet_panel(
             "Top Actions",
             report.portfolio_summary.top_actions,
             "No top actions identified.",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("### Repository Audits")
     for repo_audit, repo_check in zip(report.repo_audits, report.repo_checks):
         with st.expander(repo_audit.repo_name, expanded=False):
-            repo_col1, repo_col2, repo_col3 = st.columns([1, 1.2, 1.2])
+            repo_col1, repo_col2, repo_col3 = st.columns([1.0, 1.2, 1.2])
             with repo_col1:
-                _render_stat_card(
+                _render_metric_card(
                     "Repository Score",
                     "{score}/100".format(score=repo_check.score.overall),
                     "Deterministic score from repo quality signals.",
                     repo_check.score.label or "Not rated.",
                 )
             with repo_col2:
-                _render_stat_card(
+                _render_metric_card(
                     "Showcase Value",
                     repo_audit.showcase_value or "Not rated",
                     "Portfolio usefulness of this repository.",
+                    emphasize=True,
                 )
             with repo_col3:
-                _render_stat_card(
+                _render_metric_card(
                     "Recruiter Signal",
                     repo_audit.recruiter_signal or "Not rated",
                     "What this project likely communicates at first glance.",
+                    emphasize=True,
                 )
 
             _render_score_breakdown(repo_check.score, title="Repository Score Breakdown")
 
-            summary_col1, summary_col2 = st.columns([1.35, 1])
-            with summary_col1:
-                st.markdown("**Summary**")
-                st.write(repo_audit.summary or "No summary generated.")
-                st.markdown("**What It Does**")
-                st.write(repo_audit.what_it_does or "Not enough information.")
-            with summary_col2:
-                _render_bullet_panel(
-                    "Key Technologies",
-                    repo_audit.key_technologies,
-                    "Not identified.",
-                )
+            st.markdown("#### Summary")
+            st.write(repo_audit.summary or "No summary generated.")
+            st.markdown("#### What It Does")
+            st.write(repo_audit.what_it_does or "Not enough information.")
 
             panel_col1, panel_col2 = st.columns(2)
             with panel_col1:
-                st.markdown('<div class="section-card">', unsafe_allow_html=True)
-                _render_bullet_panel(
-                    "Strengths",
-                    repo_audit.strengths,
-                    "No strengths generated.",
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
+                _render_bullet_panel("Strengths", repo_audit.strengths, "No strengths generated.")
             with panel_col2:
-                st.markdown('<div class="section-card">', unsafe_allow_html=True)
-                _render_bullet_panel(
-                    "Weaknesses",
-                    repo_audit.weaknesses,
-                    "No weaknesses generated.",
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
+                _render_bullet_panel("Weaknesses", repo_audit.weaknesses, "No weaknesses generated.")
 
             panel_col3, panel_col4 = st.columns(2)
             with panel_col3:
-                st.markdown('<div class="section-card">', unsafe_allow_html=True)
-                _render_bullet_panel(
-                    "Recommendations",
-                    repo_audit.recommendations,
-                    "No recommendations generated.",
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
+                _render_bullet_panel("Recommendations", repo_audit.recommendations, "No recommendations generated.")
             with panel_col4:
-                st.markdown('<div class="section-card">', unsafe_allow_html=True)
-                _render_bullet_panel(
-                    "Deterministic Findings",
-                    repo_check.findings,
-                    "No deterministic findings.",
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
+                _render_bullet_panel("Findings", repo_check.findings, "No findings.")
 
-            st.markdown('<div class="section-card">', unsafe_allow_html=True)
-            _render_bullet_panel(
-                "Deterministic Good Signals",
-                repo_check.strengths,
-                "No deterministic strengths identified.",
-            )
-            st.markdown("</div>", unsafe_allow_html=True)
+            panel_col5, panel_col6 = st.columns(2)
+            with panel_col5:
+                _render_bullet_panel("Key Technologies", repo_audit.key_technologies, "Not identified.")
+            with panel_col6:
+                _render_bullet_panel(
+                    "Positive Signals",
+                    repo_check.strengths,
+                    "No positive signals identified.",
+                )
 
 
 def _render_downloads(report, github_username):
@@ -570,8 +567,6 @@ def _render_downloads(report, github_username):
         "Choose download format",
         [
             "Markdown (.md)",
-            "Text (.txt)",
-            "Word (.docx)",
             "PDF (.pdf)",
         ],
     )
@@ -580,23 +575,18 @@ def _render_downloads(report, github_username):
         file_data = generate_markdown(report.feedback_markdown)
         mime_type = "text/markdown"
         file_ext = "md"
-    elif file_format == "Text (.txt)":
-        file_data = generate_txt(report.feedback_markdown)
-        mime_type = "text/plain"
-        file_ext = "txt"
-    elif file_format == "Word (.docx)":
-        file_data = generate_docx(report.feedback_markdown)
-        mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        file_ext = "docx"
     else:
         file_data = generate_pdf(report.feedback_markdown)
         mime_type = "application/pdf"
         file_ext = "pdf"
 
     st.download_button(
-        label=f"Download Report as {file_format.split()[0]}",
+        label="Download Report as {label}".format(label=file_format.split()[0]),
         data=file_data.getvalue(),
-        file_name=f"{github_username or 'my'}_portfolio_suggestions.{file_ext}",
+        file_name="{name}_portfolio_suggestions.{ext}".format(
+            name=github_username or "my",
+            ext=file_ext,
+        ),
         mime=mime_type,
     )
 
@@ -624,20 +614,15 @@ def main():
                 st.session_state.repo_catalog = load_repo_catalog(github_username)
                 st.session_state.report = None
         except Exception as error:
-            st.error(f"Error: {error}")
+            st.error("Error: {error}".format(error=error))
 
     repo_catalog = st.session_state.repo_catalog
 
     if repo_catalog:
         repo_count = len(repo_catalog)
-        st.markdown(
-            """
-            <div class="repo-shell">
-                <h4>Repository Catalog Ready</h4>
-                <div class="repo-meta">{count} repositories loaded. Choose a scope and run the audit.</div>
-            </div>
-            """.format(count=repo_count),
-            unsafe_allow_html=True,
+        _render_repo_header(
+            "Repository Catalog Ready",
+            "{count} repositories loaded. Choose a scope and run the audit.".format(count=repo_count),
         )
 
         scope = st.radio(
@@ -711,7 +696,7 @@ def main():
                     )
                     status_placeholder.success("Analysis complete.")
                 except Exception as error:
-                    st.error(f"Error: {error}")
+                    st.error("Error: {error}".format(error=error))
 
     report = st.session_state.report
     if report:
