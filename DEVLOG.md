@@ -48,11 +48,67 @@ Removed obsolete files from the older prototype:
 - deleted the tracked `suggestions/` markdown artifacts
 - updated root documentation so it reflects the current app instead of the initial prototype
 
+## March 8, 2026 - GitHub OAuth Sign-In
+
+Added the first production-facing auth upgrade:
+
+- added GitHub OAuth app configuration support via environment variables or local ignored files
+- added browser-based GitHub sign-in flow in the Streamlit UI
+- stored the authenticated GitHub login in session flow so a signed-in user can analyze their own public repositories
+- kept the OAuth scope limited to public-profile access rather than broad private-repo permissions
+- added auth-focused tests and removed unused dependencies from `requirements.txt`
+
+## March 8, 2026 - Public-Only Auth and PDF Polish
+
+Tightened the app around the public-facing product direction:
+
+- removed the legacy local GitHub token access path from the fetch pipeline
+- kept repository loading strictly public-username based, including signed-in self-analysis
+- expanded test coverage for GitHub client failures and exporter behavior
+- rebuilt the PDF exporter to produce cleaner hierarchy, list rendering, separators, and page footers
+- upgraded PDF generation to use browser-rendered HTML/CSS via Playwright with a ReportLab fallback
+
+## March 9, 2026 - PDF Layout Hardening
+
+Stabilized export quality so Markdown structure renders more consistently across reports:
+
+- normalized ordered-list and nested-list rendering in the PDF output
+- improved spacing behavior for bullet sections such as `Strengths`, `Weaknesses`, and `Top Priority Actions`
+- changed report accent styling from green to blue for a more formal presentation
+- prevented orphaned section headings where possible during page breaks
+- added stronger exporter regression tests around list parsing and layout edge cases
+
+## March 9, 2026 - Deterministic Single-Repo Reports
+
+Replaced the final freeform single-repository rewrite step with a fixed report template:
+
+- kept repo-level analysis content sourced from structured `RepoAudit` output
+- formatted `Strengths` and `Weaknesses` as bullet items with bold lead phrases and explanations
+- formatted `Top Priority Actions` as stable numbered actions
+- kept `Findings` tied to deterministic checks rather than expanded narrative
+- reduced repo-to-repo formatting drift in exported Markdown and PDF reports
+
+## March 10, 2026 - Deterministic Portfolio Reports
+
+Applied the same report-structure discipline to multi-repository analysis:
+
+- removed the final freeform portfolio rewrite step
+- rendered portfolio reports directly from `PortfolioSummary`, per-repo `RepoAudit`, and deterministic findings
+- standardized portfolio `Top Actions`, per-repo `Recommendations`, and per-repo `Findings`
+- kept multi-repo content rich while making section layout uniform across different portfolios
+
+## March 10, 2026 - Report Identification and Header Clarity
+
+Improved the beginning of single-repository exports so the target repository is obvious:
+
+- added the repository name directly below the main `GitHub Repository Audit` title
+- made it clear which repository a single-repo report belongs to before the score section starts
+- added tests to lock in the updated header structure
+
 ---
 
 ## Next Steps
 
-- GitHub OAuth for real-user authorization
 - deployment setup for public usage
-- further PDF/report-template polish
+- further performance and rate-limit resilience improvements
 - broader tests around GitHub parsing and model failure handling

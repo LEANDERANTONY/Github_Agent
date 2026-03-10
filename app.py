@@ -4,6 +4,15 @@ import textwrap
 import streamlit as st
 
 from src.exporters import generate_markdown, generate_pdf
+from src.github_auth import (
+    build_authorize_url,
+    consume_oauth_state,
+    exchange_code_for_token,
+    generate_oauth_state,
+    get_authenticated_user,
+    oauth_is_configured,
+    register_oauth_state,
+)
 from src.github_client import get_github_repos, get_portfolio_repo_facts
 from src.report_builder import build_portfolio_feedback
 
@@ -90,6 +99,26 @@ def _inject_styles():
                 padding: 1rem;
                 margin-bottom: 0.9rem;
                 box-shadow: var(--shadow);
+            }
+
+            .auth-divider {
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+                color: var(--muted);
+                margin: 0.9rem 0 1rem;
+                font-size: 0.9rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                font-weight: 700;
+            }
+
+            .auth-divider::before,
+            .auth-divider::after {
+                content: "";
+                flex: 1;
+                height: 1px;
+                background: var(--line);
             }
 
             .repo-shell h4 {
@@ -347,26 +376,146 @@ def _normalize_username(username):
     return (username or "").strip()
 
 
-def _catalog_target(username):
-    return _normalize_username(username) or "__my_profile__"
+def _init_auth_state():
+    auth_defaults = {
+        "github_auth_login": "",
+        "github_auth_error": "",
+    }
+    for key, value in auth_defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
+
+def _reset_loaded_data():
+    st.session_state.repo_catalog = None
+    st.session_state.report = None
+
+
+def _clear_query_params():
+    st.query_params.clear()
+
+
+def _disconnect_github_auth():
+    st.session_state.github_auth_login = ""
+    st.session_state.github_auth_error = ""
+    _reset_loaded_data()
+    _clear_query_params()
+
+
+def _handle_github_oauth_callback():
+    if not oauth_is_configured():
+        return
+
+    query_params = st.query_params.to_dict()
+    code = query_params.get("code")
+    state = query_params.get("state")
+    error = query_params.get("error")
+
+    if not any([code, state, error]):
+        return
+
+    if error:
+        description = query_params.get("error_description") or error
+        st.session_state.github_auth_error = "GitHub sign-in failed: {error}".format(
+            error=description
+        )
+        _clear_query_params()
+        return
+
+    if not code or not state or not consume_oauth_state(state):
+        st.session_state.github_auth_error = "GitHub sign-in failed: invalid OAuth state."
+        _clear_query_params()
+        return
+
+    access_token = exchange_code_for_token(code, state=state)
+    user = get_authenticated_user(access_token)
+    st.session_state.github_auth_login = user.get("login") or ""
+    st.session_state.github_auth_error = ""
+    _reset_loaded_data()
+    _clear_query_params()
+
+
+def _render_auth_panel():
+    if st.session_state.get("github_auth_error"):
+        st.error(st.session_state.github_auth_error)
+        st.session_state.github_auth_error = ""
+
+    if not oauth_is_configured():
+        st.caption(
+            "GitHub OAuth is not configured. Public repositories can still be analyzed by username."
+        )
+        return
+
+    auth_login = st.session_state.get("github_auth_login")
+    if auth_login:
+        _render_repo_header(
+            "GitHub Connected",
+            "Signed in as {login}. Leave the username blank to analyze this account's public repositories.".format(
+                login=auth_login
+            ),
+        )
+        st.caption(
+            "OAuth sign-in is used for identity here. Only publicly visible repositories are analyzed."
+        )
+        if st.button("Disconnect GitHub"):
+            _disconnect_github_auth()
+            st.rerun()
+        return
+
+    oauth_state = generate_oauth_state()
+    register_oauth_state(oauth_state)
+    authorize_url = build_authorize_url(oauth_state)
+    _render_repo_header(
+        "Connect GitHub",
+        "Authorize the app to identify your GitHub account and analyze its public repositories.",
+    )
+    st.markdown(
+        "[Sign in with GitHub]({url})".format(url=authorize_url),
+        unsafe_allow_html=False,
+    )
+    st.markdown('<div class="auth-divider">or</div>', unsafe_allow_html=True)
+
+
+def _catalog_target(username):
+    normalized_username = _normalize_username(username)
+    if normalized_username:
+        return normalized_username.lower()
+    return "__my_profile__"
 
 @st.cache_data(show_spinner=False, ttl=900)
+def _load_public_repo_catalog(username):
+    return get_github_repos(username=username)
+
+
 def load_repo_catalog(username):
     normalized_username = _normalize_username(username)
-    return get_github_repos(username=normalized_username or None)
+    if normalized_username:
+        return _load_public_repo_catalog(normalized_username)
+    raise Exception("Enter a public GitHub username or sign in with GitHub to analyze public repositories.")
 
 
 @st.cache_data(show_spinner=False, ttl=900)
-def load_repo_facts(username, selected_repo_names, max_repos, skip_forks):
-    normalized_username = _normalize_username(username)
+def _load_public_repo_facts(username, selected_repo_names, max_repos, skip_forks):
     repo_names = list(selected_repo_names) if selected_repo_names else None
     return get_portfolio_repo_facts(
-        username=normalized_username or None,
+        username=username,
         selected_repo_names=repo_names,
         max_repos=max_repos,
         skip_forks=skip_forks,
     )
+
+
+def load_repo_facts(username, selected_repo_names, max_repos, skip_forks):
+    normalized_username = _normalize_username(username)
+    repo_names = list(selected_repo_names) if selected_repo_names else None
+    if normalized_username:
+        return _load_public_repo_facts(
+            normalized_username,
+            repo_names,
+            max_repos,
+            skip_forks,
+        )
+    raise Exception("Enter a public GitHub username or sign in with GitHub to analyze public repositories.")
 
 
 def _reset_catalog_if_target_changed(target):
@@ -594,10 +743,32 @@ def _render_downloads(report, github_username):
 def main():
     st.set_page_config(page_title="GitHub Portfolio Reviewer", page_icon="GitHub")
     _inject_styles()
+    _init_auth_state()
+    try:
+        _handle_github_oauth_callback()
+    except Exception as error:
+        st.session_state.github_auth_error = "GitHub sign-in failed: {error}".format(
+            error=error
+        )
     _render_intro()
+    _render_auth_panel()
 
-    github_username = st.text_input("GitHub Username (optional)", placeholder="e.g. torvalds")
-    target = _catalog_target(github_username)
+    github_username = st.text_input(
+        "Enter your GitHub username to analyze profile",
+        placeholder="e.g. torvalds",
+    )
+    auth_login = st.session_state.get("github_auth_login") or ""
+    effective_username = _normalize_username(github_username) or auth_login
+    target = _catalog_target(effective_username)
+
+    if auth_login and not _normalize_username(github_username):
+        st.caption(
+            "Using your signed-in GitHub username `{login}`. Only public repositories will be analyzed.".format(
+                login=auth_login
+            )
+        )
+    elif not _normalize_username(github_username):
+        st.caption("Enter a public GitHub username, or sign in to analyze your own public repositories.")
 
     if "repo_catalog_target" not in st.session_state:
         st.session_state.repo_catalog_target = target
@@ -611,7 +782,9 @@ def main():
     if st.button("Load Repositories"):
         try:
             with st.spinner("Loading repositories..."):
-                st.session_state.repo_catalog = load_repo_catalog(github_username)
+                st.session_state.repo_catalog = load_repo_catalog(
+                    effective_username,
+                )
                 st.session_state.report = None
         except Exception as error:
             st.error("Error: {error}".format(error=error))
@@ -680,14 +853,14 @@ def main():
                     update_progress("Loading cached GitHub data...", 5)
                     selected_repo_tuple = tuple(selected_repo_names or [])
                     repo_facts = load_repo_facts(
-                        github_username,
+                        effective_username,
                         selected_repo_tuple,
                         max_repos if scope == "Portfolio slice" else None,
                         skip_forks if scope == "Portfolio slice" else False,
                     )
 
                     st.session_state.report = build_portfolio_feedback(
-                        github_username=github_username,
+                        github_username=effective_username,
                         selected_repo_names=selected_repo_names,
                         max_repos=max_repos if scope == "Portfolio slice" else None,
                         skip_forks=skip_forks if scope == "Portfolio slice" else False,
@@ -709,7 +882,7 @@ def main():
         else:
             _render_portfolio_report(report)
 
-        _render_downloads(report, github_username)
+        _render_downloads(report, effective_username)
 
     st.markdown("---")
     st.caption("Built by Leander Antony | Powered by OpenAI and the GitHub API")

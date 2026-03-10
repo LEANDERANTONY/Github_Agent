@@ -42,7 +42,7 @@ For portfolio-level analysis, the app also:
 
 ## Current Features
 
-- Load repositories from a public GitHub username or your own profile via token
+- Load repositories from a public GitHub username or via GitHub OAuth sign-in for your own public profile
 - Choose analysis scope:
   - single repository
   - selected repositories
@@ -53,6 +53,7 @@ For portfolio-level analysis, the app also:
 - Repository scoring with visible category breakdowns
 - Repo-by-repo audit panels in the UI
 - Downloadable final report in Markdown or PDF
+- Browser-rendered PDF output for cleaner typography and more faithful Markdown layout
 
 ## Scoring Model
 
@@ -127,6 +128,7 @@ venv\Scripts\activate
 
 ```powershell
 pip install -r requirements.txt
+venv\Scripts\python.exe -m playwright install chromium
 ```
 
 ### 3. Add credentials
@@ -135,10 +137,28 @@ Create these files in the project root as needed:
 
 - `openai_key.txt`
   required for all LLM analysis
-- `github_token.txt`
-  recommended for higher GitHub API limits and required to inspect your own repositories when no username is provided
+- `github_oauth_client_id.txt`
+  optional if you want browser-based GitHub sign-in in Streamlit
+- `github_oauth_client_secret.txt`
+  optional pair for GitHub OAuth app sign-in
+- `github_oauth_redirect_uri.txt`
+  optional OAuth callback URL, for example `http://localhost:8501`
+
+Equivalent environment variables are also supported:
+
+- `OPENAI_API_KEY`
+- `GITHUB_OAUTH_CLIENT_ID`
+- `GITHUB_OAUTH_CLIENT_SECRET`
+- `GITHUB_OAUTH_REDIRECT_URI`
+- `GITHUB_OAUTH_SCOPE`
 
 The token and key files are ignored by Git.
+
+OAuth scope default:
+
+- The app defaults to `read:user user:email`.
+- If you want to override that, set `GITHUB_OAUTH_SCOPE`.
+- In the current product flow, OAuth is used for identity and public-profile convenience only. The app analyzes public repositories only.
 
 ## Running the App
 
@@ -148,7 +168,7 @@ streamlit run app.py
 
 Then:
 
-1. Enter a GitHub username or leave it blank to analyze your own repositories with `github_token.txt`
+1. Enter a public GitHub username, or sign in with GitHub and leave the username blank to analyze your own public repositories
 2. Click `Load Repositories`
 3. Choose one of:
    - `Single repository`
@@ -163,7 +183,7 @@ Then:
 Run the current test suite with:
 
 ```powershell
-venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_builder
+venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_builder tests.test_github_auth tests.test_github_client tests.test_exporters
 ```
 
 ## Example Analysis Flow
@@ -185,24 +205,26 @@ venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_bui
 
 ## Current Limitations
 
-- The app does not yet support GitHub OAuth; it currently relies on a local token file for authenticated access
-- Large portfolios can still take time because each repository gets its own model call
+- GitHub OAuth now requires you to configure your own GitHub OAuth app credentials and callback URL before browser-based sign-in will appear
+- The app analyzes public repositories only; private repository access is intentionally not requested in the current OAuth flow
+- Large portfolios can still take time because each repository gets its own model call and GitHub content fetches are still sequential
 - The scoring model is rule-based and intentionally simple
-- PDF formatting is improved, but the export layer can still be refined further
+- PDF formatting is presentation-ready for normal reports, but the export layer can still be refined further for long portfolios and branded templates
+- The higher-quality PDF path depends on Playwright/Chromium being available in the runtime environment
 
 ## Roadmap
 
-- GitHub OAuth for real user authorization
-- further PDF/report-template polish
+- deployment setup for public usage
+- further performance and rate-limit resilience improvements
 - optional repository Q&A / RAG mode for deeper codebase exploration
 - more robust automated tests around GitHub response parsing and failure modes
 
 ## Security Notes
 
 - Never commit API keys or tokens
-- Keep `openai_key.txt` and `github_token.txt` local only
-- Use read-only GitHub token permissions for development unless broader access is truly needed
+- Keep `openai_key.txt` and OAuth credential files local only
+- If you later add private-repo support, prefer a GitHub App or fine-grained personal access token with minimal permissions
 
 ## Status
 
-This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, scoring system, export flow, and polished Streamlit interface are implemented. The next major product milestone is making the app ready for external users through OAuth and deployment polish.
+This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, scoring system, export flow, polished Streamlit interface, and GitHub OAuth sign-in support are implemented. The next major product milestone is deployment hardening and broader failure-mode coverage.

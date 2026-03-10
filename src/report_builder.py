@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from src.config import REPO_ANALYSIS_MAX_WORKERS
 from src.github_client import get_portfolio_repo_facts
-from src.openai_service import analyze_repo, polish_portfolio_report, summarize_portfolio
+from src.openai_service import analyze_repo, summarize_portfolio
 from src.repo_checks import build_portfolio_score, run_repo_checks
 from src.schemas import PortfolioReport, PortfolioSummary, RepoAudit
 
@@ -12,12 +12,62 @@ def _update_progress(progress_callback, message, value):
         progress_callback(message, value)
 
 
+def _split_emphasis_text(text):
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return "", ""
+
+    parts = cleaned.split(": ", 1)
+    if len(parts) != 2:
+        return "", cleaned
+
+    title, detail = parts[0].strip(), parts[1].strip()
+    if not title or not detail:
+        return "", cleaned
+
+    if len(title) > 90 or "http" in title.lower():
+        return "", cleaned
+
+    return title, detail
+
+
+def _format_emphasized_bullets(items, default_message):
+    normalized_items = items or [default_message]
+    lines = []
+
+    for item in normalized_items:
+        title, detail = _split_emphasis_text(item)
+        if title:
+            lines.append("- **{title}**: {detail}".format(title=title, detail=detail))
+        else:
+            lines.append("- {item}".format(item=item))
+
+    return lines
+
+
+def _format_priority_actions(items):
+    normalized_items = items or ["No recommendations generated."]
+    lines = []
+
+    for index, item in enumerate(normalized_items, start=1):
+        title, detail = _split_emphasis_text(item)
+        if title:
+            lines.append("{index}. **{title}**: {detail}".format(index=index, title=title, detail=detail))
+        else:
+            lines.append("{index}. {item}".format(index=index, item=item))
+
+    return lines
+
+
 def _format_markdown_report(report):
     if report.repo_count == 1 and report.repo_audits:
         repo_audit = report.repo_audits[0]
         repo_check = report.repo_checks[0]
         lines = [
             "# GitHub Repository Audit",
+            "",
+            "**Repository**",
+            repo_audit.repo_name,
             "",
             "## Repository Score",
             "{score}/100 ({label})".format(
@@ -44,14 +94,21 @@ def _format_markdown_report(report):
         technologies = repo_audit.key_technologies or ["Not identified."]
         lines.extend("- {item}".format(item=item) for item in technologies)
         lines.extend(["", "## Strengths"])
-        strengths = repo_audit.strengths or ["No strengths generated."]
-        lines.extend("- {item}".format(item=item) for item in strengths)
+        lines.extend(
+            _format_emphasized_bullets(
+                repo_audit.strengths,
+                "No strengths generated.",
+            )
+        )
         lines.extend(["", "## Weaknesses"])
-        weaknesses = repo_audit.weaknesses or ["No weaknesses generated."]
-        lines.extend("- {item}".format(item=item) for item in weaknesses)
+        lines.extend(
+            _format_emphasized_bullets(
+                repo_audit.weaknesses,
+                "No weaknesses generated.",
+            )
+        )
         lines.extend(["", "## Top Priority Actions"])
-        recommendations = repo_audit.recommendations or ["No recommendations generated."]
-        lines.extend("- {item}".format(item=item) for item in recommendations)
+        lines.extend(_format_priority_actions(repo_audit.recommendations))
         lines.extend(
             [
                 "",
@@ -61,10 +118,10 @@ def _format_markdown_report(report):
                 "**Recruiter Signal**",
                 repo_audit.recruiter_signal or "Not rated.",
                 "",
-                "## Deterministic Findings",
+                "## Findings",
             ]
         )
-        findings = repo_check.findings or ["No deterministic findings."]
+        findings = repo_check.findings or ["No findings."]
         lines.extend("- {item}".format(item=item) for item in findings)
         return "\n".join(lines).strip()
 
@@ -91,8 +148,11 @@ def _format_markdown_report(report):
     lines.extend("- {item}".format(item=item) for item in improvement_areas)
     lines.extend(["", "### Top Actions"])
 
-    top_actions = report.portfolio_summary.top_actions or ["No top actions identified."]
-    lines.extend("- {item}".format(item=item) for item in top_actions)
+    lines.extend(
+        _format_priority_actions(
+            report.portfolio_summary.top_actions or ["No top actions identified."]
+        )
+    )
     lines.extend(["", "## Repository Audits"])
 
     for repo_audit, repo_check in zip(report.repo_audits, report.repo_checks):
@@ -119,14 +179,21 @@ def _format_markdown_report(report):
         technologies = repo_audit.key_technologies or ["Not identified."]
         lines.extend("- {item}".format(item=item) for item in technologies)
         lines.extend(["", "**Strengths**"])
-        strengths = repo_audit.strengths or ["No strengths generated."]
-        lines.extend("- {item}".format(item=item) for item in strengths)
+        lines.extend(
+            _format_emphasized_bullets(
+                repo_audit.strengths,
+                "No strengths generated.",
+            )
+        )
         lines.extend(["", "**Weaknesses**"])
-        weaknesses = repo_audit.weaknesses or ["No weaknesses generated."]
-        lines.extend("- {item}".format(item=item) for item in weaknesses)
+        lines.extend(
+            _format_emphasized_bullets(
+                repo_audit.weaknesses,
+                "No weaknesses generated.",
+            )
+        )
         lines.extend(["", "**Recommendations**"])
-        recommendations = repo_audit.recommendations or ["No recommendations generated."]
-        lines.extend("- {item}".format(item=item) for item in recommendations)
+        lines.extend(_format_priority_actions(repo_audit.recommendations))
         lines.extend(
             [
                 "",
@@ -136,10 +203,10 @@ def _format_markdown_report(report):
                 "**Recruiter Signal**",
                 repo_audit.recruiter_signal or "Not rated.",
                 "",
-                "**Deterministic Findings**",
+                "**Findings**",
             ]
         )
-        findings = repo_check.findings or ["No deterministic findings."]
+        findings = repo_check.findings or ["No findings."]
         lines.extend("- {item}".format(item=item) for item in findings)
 
     return "\n".join(lines).strip()
@@ -219,11 +286,7 @@ def build_portfolio_feedback(
         portfolio_summary=portfolio_summary,
         portfolio_score=build_portfolio_score(repo_checks),
     )
-    fallback_markdown = _format_markdown_report(report)
-    _update_progress(progress_callback, "Polishing final report...", 90)
-    try:
-        report.feedback_markdown = polish_portfolio_report(report)
-    except Exception:
-        report.feedback_markdown = fallback_markdown
+    _update_progress(progress_callback, "Building final report...", 90)
+    report.feedback_markdown = _format_markdown_report(report)
     _update_progress(progress_callback, "Analysis complete.", 100)
     return report

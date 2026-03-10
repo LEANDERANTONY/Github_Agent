@@ -1,0 +1,72 @@
+import unittest
+from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
+
+from src.github_auth import (
+    build_authorize_url,
+    consume_oauth_state,
+    exchange_code_for_token,
+    oauth_is_configured,
+    register_oauth_state,
+)
+
+
+class GithubAuthTestCase(unittest.TestCase):
+    @patch("src.github_auth.load_github_oauth_client_id", return_value="client-123")
+    @patch("src.github_auth.load_github_oauth_redirect_uri", return_value="http://localhost:8501")
+    def test_build_authorize_url_contains_required_oauth_parameters(
+        self,
+        _mock_redirect_uri,
+        _mock_client_id,
+    ):
+        url = build_authorize_url("state-abc")
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+
+        self.assertEqual("https", parsed.scheme)
+        self.assertEqual("github.com", parsed.netloc)
+        self.assertEqual(["client-123"], params["client_id"])
+        self.assertEqual(["http://localhost:8501"], params["redirect_uri"])
+        self.assertEqual(["state-abc"], params["state"])
+
+    @patch("src.github_auth.requests.post")
+    @patch("src.github_auth.load_github_oauth_client_id", return_value="client-123")
+    @patch("src.github_auth.load_github_oauth_client_secret", return_value="secret-456")
+    @patch("src.github_auth.load_github_oauth_redirect_uri", return_value="http://localhost:8501")
+    def test_exchange_code_for_token_returns_access_token(
+        self,
+        _mock_redirect_uri,
+        _mock_client_secret,
+        _mock_client_id,
+        mock_post,
+    ):
+        response = MagicMock()
+        response.json.return_value = {"access_token": "token-xyz"}
+        response.raise_for_status.return_value = None
+        mock_post.return_value = response
+
+        token = exchange_code_for_token("code-123", state="state-abc")
+
+        self.assertEqual("token-xyz", token)
+        mock_post.assert_called_once()
+
+    @patch("src.github_auth.load_github_oauth_client_id", return_value="client-123")
+    @patch("src.github_auth.load_github_oauth_client_secret", return_value="secret-456")
+    @patch("src.github_auth.load_github_oauth_redirect_uri", return_value="http://localhost:8501")
+    def test_oauth_is_configured_returns_true_when_all_values_exist(
+        self,
+        _mock_redirect_uri,
+        _mock_client_secret,
+        _mock_client_id,
+    ):
+        self.assertTrue(oauth_is_configured())
+
+    def test_registered_oauth_state_can_be_consumed_once(self):
+        register_oauth_state("state-123")
+
+        self.assertTrue(consume_oauth_state("state-123"))
+        self.assertFalse(consume_oauth_state("state-123"))
+
+
+if __name__ == "__main__":
+    unittest.main()

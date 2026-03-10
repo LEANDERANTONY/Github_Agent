@@ -6,7 +6,6 @@ from src.config import (
     GITHUB_API_BASE_URL,
     GITHUB_PAGE_SIZE,
     REQUEST_TIMEOUT_SECONDS,
-    load_github_token,
 )
 from src.schemas import RepoFacts
 
@@ -18,21 +17,8 @@ def _base_headers():
     }
 
  
-def _get_header_candidates(require_auth=False):
-    anonymous_headers = _base_headers()
-    token = load_github_token(required=False)
-
-    if token:
-        authenticated_headers = _base_headers()
-        authenticated_headers["Authorization"] = f"token {token}"
-        if require_auth:
-            return [authenticated_headers]
-        return [authenticated_headers, anonymous_headers]
-
-    if require_auth:
-        load_github_token(required=True)
-
-    return [anonymous_headers]
+def _get_header_candidates():
+    return [_base_headers()]
 
 
 def _request(url, header_candidates, params=None):
@@ -165,13 +151,11 @@ def _filter_repos(repos, selected_repo_names=None, max_repos=None, skip_forks=Fa
 def get_github_repos(username=None):
     params = {"per_page": GITHUB_PAGE_SIZE, "sort": "updated"}
 
-    if username:
-        url = f"{GITHUB_API_BASE_URL}/users/{username}/repos"
-        header_candidates = _get_header_candidates(require_auth=False)
-    else:
-        url = f"{GITHUB_API_BASE_URL}/user/repos"
-        params["affiliation"] = "owner,collaborator"
-        header_candidates = _get_header_candidates(require_auth=True)
+    if not username:
+        raise Exception("A public GitHub username is required.")
+
+    url = f"{GITHUB_API_BASE_URL}/users/{username}/repos"
+    header_candidates = _get_header_candidates()
 
     repos = []
     page = 1
@@ -209,7 +193,7 @@ def get_portfolio_repo_facts(
     if not repos:
         raise Exception("No repositories matched the selected analysis scope.")
 
-    header_candidates = _get_header_candidates(require_auth=not username)
+    header_candidates = _get_header_candidates()
     repo_facts = []
 
     for repo in repos:

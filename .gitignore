@@ -207,9 +207,11 @@ marimo/_lsp/
 __marimo__/
 
 # keys
-github_token.txt
 openai_key.txt
 anthropic_key.txt
+github_oauth_client_id.txt
+github_oauth_client_secret.txt
+github_oauth_redirect_uri.txt
 .env
 
 # local notes and logs
