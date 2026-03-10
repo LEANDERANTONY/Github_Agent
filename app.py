@@ -142,6 +142,105 @@ def _inject_styles():
                 font-size: 0.92rem;
             }
 
+            .repo-narrative {
+                background: linear-gradient(180deg, rgba(5, 12, 24, 0.98), rgba(9, 20, 38, 0.98));
+                border: 1px solid rgba(96, 165, 250, 0.16);
+                border-radius: 22px;
+                padding: 1.15rem 1.2rem 1.25rem;
+                margin-top: 0.75rem;
+                box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
+            }
+
+            .repo-narrative h4 {
+                color: #f8fbff !important;
+                font-size: 1.28rem;
+                font-weight: 800;
+                margin: 0 0 0.55rem 0;
+            }
+
+            .repo-narrative p {
+                color: #f3f7ff !important;
+                margin: 0 0 1rem 0;
+                line-height: 1.7;
+            }
+
+            .repo-narrative,
+            .repo-narrative *,
+            .stExpander .repo-narrative,
+            .stExpander .repo-narrative *,
+            .stExpander .repo-narrative p,
+            .stExpander .repo-narrative li,
+            .stExpander .repo-narrative ul,
+            .stExpander .repo-narrative span,
+            .stExpander .repo-narrative div {
+                color: #eef4ff !important;
+            }
+
+            .repo-narrative h4,
+            .repo-narrative h5,
+            .stExpander .repo-narrative h4,
+            .stExpander .repo-narrative h5 {
+                color: #f8fbff !important;
+            }
+
+            .repo-narrative-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 1.1rem 1.4rem;
+                margin-top: 1rem;
+                padding-top: 1rem;
+            }
+
+            .repo-narrative-grid.row-divider {
+                border-top: 1px solid rgba(96, 165, 250, 0.14);
+            }
+
+            .repo-narrative-block h5 {
+                color: #f8fbff !important;
+                font-size: 1.12rem;
+                font-weight: 800;
+                margin: 0 0 0.5rem 0;
+            }
+
+            .repo-narrative-block ul {
+                margin: 0;
+                padding-left: 1.1rem;
+            }
+
+            .repo-narrative-block li {
+                color: #eef4ff !important;
+                margin: 0 0 0.45rem 0;
+                line-height: 1.65;
+            }
+
+            .repo-narrative-meta {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 1rem 1.4rem;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(96, 165, 250, 0.14);
+            }
+
+            .repo-narrative-meta h5 {
+                color: #f8fbff !important;
+                font-size: 1.08rem;
+                font-weight: 800;
+                margin: 0 0 0.45rem 0;
+            }
+
+            .repo-narrative-meta p,
+            .repo-narrative-meta li {
+                color: #eef4ff !important;
+                margin: 0;
+                line-height: 1.65;
+            }
+
+            .repo-narrative-meta ul {
+                margin: 0;
+                padding-left: 1.1rem;
+            }
+
             .metric-card {
                 background: #ffffff !important;
                 border: 1px solid var(--surface-line);
@@ -232,6 +331,20 @@ def _inject_styles():
             .stExpander .stCaption,
             .stExpander [data-testid="stMarkdownContainer"] p:has(code) {
                 color: var(--muted) !important;
+            }
+
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative,
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative p,
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative li,
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative div,
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative span,
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative ul {
+                color: #eef4ff !important;
+            }
+
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative h4,
+            .stExpander [data-testid="stMarkdownContainer"] .repo-narrative h5 {
+                color: #f8fbff !important;
             }
 
             .stTextInput input,
@@ -408,6 +521,11 @@ def _inject_styles():
                 .metric-value {
                     font-size: 1.7rem;
                 }
+
+                .repo-narrative-grid,
+                .repo-narrative-meta {
+                    grid-template-columns: 1fr;
+                }
             }
             </style>
             """
@@ -511,6 +629,64 @@ def _render_repo_header(title, subtitle):
         ).strip(),
         unsafe_allow_html=True,
     )
+
+
+def _render_list_html(items, empty_text):
+    values = items or [empty_text]
+    return "".join("<li>{item}</li>".format(item=_escape(item)) for item in values)
+
+
+def _render_portfolio_repo_narrative(repo_audit, repo_check):
+    narrative_html = textwrap.dedent(
+        """
+        <div class="repo-narrative">
+            <h4>Summary</h4>
+            <p>{summary}</p>
+            <h4>What It Does</h4>
+            <p>{what_it_does}</p>
+            <div class="repo-narrative-grid row-divider">
+                <div class="repo-narrative-block">
+                    <h5>Strengths</h5>
+                    <ul>{strengths}</ul>
+                </div>
+                <div class="repo-narrative-block">
+                    <h5>Weaknesses</h5>
+                    <ul>{weaknesses}</ul>
+                </div>
+            </div>
+            <div class="repo-narrative-grid row-divider">
+                <div class="repo-narrative-block">
+                    <h5>Recommendations</h5>
+                    <ul>{recommendations}</ul>
+                </div>
+                <div class="repo-narrative-block">
+                    <h5>Findings</h5>
+                    <ul>{findings}</ul>
+                </div>
+            </div>
+            <div class="repo-narrative-meta">
+                <div class="repo-narrative-block">
+                    <h5>Key Technologies</h5>
+                    <ul>{technologies}</ul>
+                </div>
+                <div class="repo-narrative-block">
+                    <h5>Positive Signals</h5>
+                    <ul>{signals}</ul>
+                </div>
+            </div>
+        </div>
+        """
+    ).format(
+        summary=_escape(repo_audit.summary or "No summary generated."),
+        what_it_does=_escape(repo_audit.what_it_does or "Not enough information."),
+        strengths=_render_list_html(repo_audit.strengths, "No strengths generated."),
+        weaknesses=_render_list_html(repo_audit.weaknesses, "No weaknesses generated."),
+        recommendations=_render_list_html(repo_audit.recommendations, "No recommendations generated."),
+        findings=_render_list_html(repo_check.findings, "No findings."),
+        technologies=_render_list_html(repo_audit.key_technologies, "Not identified."),
+        signals=_render_list_html(repo_check.strengths, "No positive signals identified."),
+    )
+    st.markdown(narrative_html, unsafe_allow_html=True)
 
 
 def _format_cache_timestamp(timestamp):
@@ -865,33 +1041,7 @@ def _render_portfolio_report(report):
                 )
 
             _render_score_breakdown(repo_check.score, title="Repository Score Breakdown")
-
-            st.markdown("#### Summary")
-            st.write(repo_audit.summary or "No summary generated.")
-            st.markdown("#### What It Does")
-            st.write(repo_audit.what_it_does or "Not enough information.")
-
-            panel_col1, panel_col2 = st.columns(2)
-            with panel_col1:
-                _render_bullet_panel("Strengths", repo_audit.strengths, "No strengths generated.")
-            with panel_col2:
-                _render_bullet_panel("Weaknesses", repo_audit.weaknesses, "No weaknesses generated.")
-
-            panel_col3, panel_col4 = st.columns(2)
-            with panel_col3:
-                _render_bullet_panel("Recommendations", repo_audit.recommendations, "No recommendations generated.")
-            with panel_col4:
-                _render_bullet_panel("Findings", repo_check.findings, "No findings.")
-
-            panel_col5, panel_col6 = st.columns(2)
-            with panel_col5:
-                _render_bullet_panel("Key Technologies", repo_audit.key_technologies, "Not identified.")
-            with panel_col6:
-                _render_bullet_panel(
-                    "Positive Signals",
-                    repo_check.strengths,
-                    "No positive signals identified.",
-                )
+            _render_portfolio_repo_narrative(repo_audit, repo_check)
 
 
 def _render_downloads(report, github_username):
