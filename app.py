@@ -239,19 +239,42 @@ def _inject_styles():
             }
 
             .stButton > button,
-            .stDownloadButton > button {
+            .stDownloadButton > button,
+            .stFormSubmitButton > button {
                 background: #1f2937 !important;
                 color: #f8fafc !important;
                 border: 1px solid #1f2937 !important;
             }
 
+            .oauth-link {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 2.5rem;
+                padding: 0.5rem 0.95rem;
+                border-radius: 0.5rem;
+                background: #1f2937;
+                color: #f8fafc !important;
+                text-decoration: none !important;
+                border: 1px solid #1f2937;
+                font-weight: 600;
+            }
+
+            .oauth-link:hover {
+                background: #111827;
+                border-color: #111827;
+                color: #f8fafc !important;
+            }
+
             .stButton > button *,
-            .stDownloadButton > button * {
+            .stDownloadButton > button *,
+            .stFormSubmitButton > button * {
                 color: #f8fafc !important;
             }
 
             .stButton > button:hover,
-            .stDownloadButton > button:hover {
+            .stDownloadButton > button:hover,
+            .stFormSubmitButton > button:hover {
                 background: #111827 !important;
                 color: #f8fafc !important;
                 border-color: #111827 !important;
@@ -513,8 +536,10 @@ def _render_auth_panel():
         "Authorize the app to identify your GitHub account and analyze its public repositories.",
     )
     st.markdown(
-        "[Sign in with GitHub]({url})".format(url=authorize_url),
-        unsafe_allow_html=False,
+        '<a class="oauth-link" href="{url}" target="_self">Sign in with GitHub</a>'.format(
+            url=_escape(authorize_url)
+        ),
+        unsafe_allow_html=True,
     )
     st.markdown('<div class="auth-divider">or</div>', unsafe_allow_html=True)
 
@@ -754,7 +779,6 @@ def _render_portfolio_report(report):
 
 
 def _render_downloads(report, github_username):
-    st.markdown("#### Download Report")
     file_format = st.selectbox(
         "Choose download format",
         [
@@ -798,10 +822,12 @@ def main():
     _render_intro()
     _render_auth_panel()
 
-    github_username = st.text_input(
-        "Enter your GitHub username to analyze profile",
-        placeholder="e.g. torvalds",
-    )
+    with st.form("repo_catalog_form", clear_on_submit=False):
+        github_username = st.text_input(
+            "Enter your GitHub username to analyze profile",
+            placeholder="e.g. torvalds",
+        )
+        load_repositories = st.form_submit_button("Load Repositories")
     auth_login = st.session_state.get("github_auth_login") or ""
     effective_username = _normalize_username(github_username) or auth_login
     target = _catalog_target(effective_username)
@@ -824,7 +850,7 @@ def main():
 
     _reset_catalog_if_target_changed(target)
 
-    if st.button("Load Repositories"):
+    if load_repositories:
         try:
             with st.spinner("Loading repositories..."):
                 st.session_state.repo_catalog = load_repo_catalog(

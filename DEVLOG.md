@@ -175,6 +175,17 @@ Rounded out the repository documentation with operational references:
 - added `docs/architecture.md` with a high-level walkthrough of runtime flow, modules, cache design, auth model, and export pipeline
 - kept `DEVLOG.md` at the repository root so change history stays easy to discover alongside `README.md`
 
+## March 10, 2026 - UI Interaction and Demo Asset Polish
+
+Improved the last visible friction points in the local app flow and refreshed demo assets:
+
+- kept the GitHub OAuth authorize flow in the same browser tab instead of opening a new tab
+- changed the username-to-repository-load interaction to use a Streamlit form so the typed username submits cleanly on the first click
+- aligned the `Load Repositories` form-submit button styling with the rest of the UI button system
+- removed a flashing `Download Report` heading that appeared during export-format rerenders
+- added focused demo recordings for GitHub OAuth sign-in and single-repository analysis/report download
+- kept the large full-workflow video out of git history and linked it from the README as an external Google Drive demo
+
 ---
 
 ## Next Steps

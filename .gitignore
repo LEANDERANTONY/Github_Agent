@@ -221,3 +221,4 @@ streamlit.err.log
 analysis_cache.sqlite3
 analysis_cache.sqlite3-journal
 playwright-smoke.pdf
+docs/recordings/app_workflow.mp4
