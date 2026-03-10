@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from src.errors import ExportError
 from src.exporters import (
     _build_report_html,
     _clean_inline_markdown,
@@ -256,6 +257,16 @@ class ExportersTestCase(unittest.TestCase):
         pdf = generate_pdf("# Fallback Test").getvalue()
 
         self.assertTrue(pdf.startswith(b"%PDF"))
+
+    @patch("src.exporters._generate_pdf_with_reportlab", side_effect=RuntimeError("reportlab failed"))
+    @patch("src.exporters._generate_pdf_with_playwright", side_effect=RuntimeError("playwright failed"))
+    def test_generate_pdf_raises_export_error_when_both_backends_fail(
+        self,
+        _mock_generate_pdf,
+        _mock_reportlab,
+    ):
+        with self.assertRaises(ExportError):
+            generate_pdf("# Export Failure Test")
 
 
 if __name__ == "__main__":

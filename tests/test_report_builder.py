@@ -192,6 +192,52 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertEqual("generated", report.cache_status)
         self.assertEqual("2026-03-10T12:00:00+00:00", report.cache_saved_at)
         mock_save_cached_report.assert_called_once()
+        self.assertEqual([], report.report_warnings)
+
+    @patch("src.report_builder.build_portfolio_score")
+    @patch("src.report_builder.save_cached_report")
+    @patch("src.report_builder.load_cached_report")
+    @patch("src.report_builder.build_freshness_signature")
+    @patch("src.report_builder.build_analysis_key")
+    @patch("src.report_builder.analyze_repo")
+    @patch("src.report_builder.run_repo_checks")
+    def test_build_portfolio_feedback_adds_warning_when_repo_analysis_falls_back(
+        self,
+        mock_run_repo_checks,
+        mock_analyze_repo,
+        mock_build_analysis_key,
+        mock_build_freshness_signature,
+        mock_load_cached_report,
+        mock_save_cached_report,
+        mock_build_portfolio_score,
+    ):
+        repo_fact = RepoFacts(name="demo", description="Demo repo", languages={"Python": 100})
+        repo_check = RepoCheckResult(
+            repo_name="demo",
+            findings=["No tests found."],
+            strengths=["README detected."],
+            score=ScoreSummary(overall=72, label="Strong", category_scores={"Engineering": 70}),
+        )
+
+        mock_run_repo_checks.return_value = repo_check
+        mock_analyze_repo.side_effect = OpenAIAnalysisError("repo analysis failed")
+        mock_build_analysis_key.return_value = "analysis-key"
+        mock_build_freshness_signature.return_value = "freshness-signature"
+        mock_load_cached_report.return_value = None
+        mock_save_cached_report.return_value = "2026-03-10T12:00:00+00:00"
+        mock_build_portfolio_score.return_value = ScoreSummary(
+            overall=72,
+            label="Strong",
+            category_scores={"Engineering": 70},
+        )
+
+        report = build_portfolio_feedback(
+            github_username="demo",
+            repo_facts=[repo_fact],
+        )
+
+        self.assertIn("deterministic fallback summary was used", report.report_warnings[0].lower())
+        self.assertIn("Automated repo analysis was unavailable", report.repo_audits[0].summary)
 
     @patch("src.report_builder.build_portfolio_score")
     @patch("src.report_builder.save_cached_report")

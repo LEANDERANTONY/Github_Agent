@@ -9,6 +9,7 @@ from src.github_auth import (
     build_authorize_url,
     consume_oauth_state,
     exchange_code_for_token,
+    get_authenticated_user,
     oauth_is_configured,
     register_oauth_state,
 )
@@ -70,6 +71,15 @@ class GithubAuthTestCase(unittest.TestCase):
 
         with self.assertRaises(GithubOAuthError):
             exchange_code_for_token("code-123", state="state-abc")
+
+    @patch("src.github_auth.requests.get")
+    def test_get_authenticated_user_raises_oauth_error_on_http_failure(self, mock_get):
+        response = MagicMock()
+        response.raise_for_status.side_effect = requests.RequestException("boom")
+        mock_get.return_value = response
+
+        with self.assertRaises(GithubOAuthError):
+            get_authenticated_user("token-xyz")
 
     @patch("src.github_auth.load_github_oauth_client_id", return_value="client-123")
     @patch("src.github_auth.load_github_oauth_client_secret", return_value="secret-456")
