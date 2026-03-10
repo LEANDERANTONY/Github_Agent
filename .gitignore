@@ -218,3 +218,5 @@ github_oauth_redirect_uri.txt
 Github_Agent.txt
 streamlit.log
 streamlit.err.log
+analysis_cache.sqlite3
+analysis_cache.sqlite3-journal

@@ -88,12 +88,35 @@ def _get_repo_root_entries(owner_login, repo_name, header_candidates):
     return [entry.get("name", "") for entry in payload if entry.get("name")]
 
 
+def _get_default_branch_head_sha(owner_login, repo_name, default_branch, header_candidates):
+    if not default_branch:
+        return ""
+
+    url = f"{GITHUB_API_BASE_URL}/repos/{owner_login}/{repo_name}/branches/{default_branch}"
+    try:
+        payload = _request_json(url, header_candidates=header_candidates)
+    except Exception as error:
+        if "GitHub API error 404" in str(error):
+            return ""
+        raise
+
+    commit = payload.get("commit") or {}
+    return commit.get("sha") or ""
+
+
 def _build_repo_facts(repo, header_candidates):
     owner_login = (repo.get("owner") or {}).get("login", "")
     license_info = repo.get("license") or {}
+    default_branch = repo.get("default_branch") or ""
     languages = _get_repo_languages(owner_login, repo["name"], header_candidates)
     readme_present, readme_text = _get_repo_readme(owner_login, repo["name"], header_candidates)
     root_entries = _get_repo_root_entries(owner_login, repo["name"], header_candidates)
+    default_branch_head_sha = _get_default_branch_head_sha(
+        owner_login,
+        repo["name"],
+        default_branch,
+        header_candidates,
+    )
 
     return RepoFacts(
         name=repo["name"],
@@ -108,7 +131,8 @@ def _build_repo_facts(repo, header_candidates):
         forks_count=repo.get("forks_count") or 0,
         open_issues_count=repo.get("open_issues_count") or 0,
         license_name=license_info.get("name") or "",
-        default_branch=repo.get("default_branch") or "",
+        default_branch=default_branch,
+        default_branch_head_sha=default_branch_head_sha,
         repo_size_kb=repo.get("size") or 0,
         is_fork=bool(repo.get("fork")),
         languages=languages,

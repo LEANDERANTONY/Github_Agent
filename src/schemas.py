@@ -24,6 +24,7 @@ class RepoFacts:
     open_issues_count: int = 0
     license_name: str = ""
     default_branch: str = ""
+    default_branch_head_sha: str = ""
     repo_size_kb: int = 0
     is_fork: bool = False
     languages: Dict[str, int] = field(default_factory=dict)

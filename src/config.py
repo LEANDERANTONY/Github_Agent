@@ -7,11 +7,13 @@ OPENAI_KEY_PATH = BASE_DIR / "openai_key.txt"
 GITHUB_OAUTH_CLIENT_ID_PATH = BASE_DIR / "github_oauth_client_id.txt"
 GITHUB_OAUTH_CLIENT_SECRET_PATH = BASE_DIR / "github_oauth_client_secret.txt"
 GITHUB_OAUTH_REDIRECT_URI_PATH = BASE_DIR / "github_oauth_redirect_uri.txt"
+ANALYSIS_CACHE_DB_PATH = BASE_DIR / "analysis_cache.sqlite3"
 
 OPENAI_REPO_MODEL = os.getenv("OPENAI_REPO_MODEL", "gpt-5-mini")
 OPENAI_PORTFOLIO_MODEL = os.getenv("OPENAI_PORTFOLIO_MODEL", "gpt-5.4")
 OPENAI_FINAL_REPORT_MODEL = os.getenv("OPENAI_FINAL_REPORT_MODEL", "gpt-5.4")
 GITHUB_OAUTH_SCOPE = os.getenv("GITHUB_OAUTH_SCOPE", "read:user user:email")
+ANALYSIS_CACHE_VERSION = "2026-03-10-v1"
 
 GITHUB_API_BASE_URL = "https://api.github.com"
 GITHUB_PAGE_SIZE = 100

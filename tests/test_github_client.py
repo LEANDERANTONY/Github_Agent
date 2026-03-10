@@ -1,7 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from src.github_client import _get_header_candidates, _request, get_github_repos
+from src.github_client import (
+    _get_default_branch_head_sha,
+    _get_header_candidates,
+    _request,
+    get_github_repos,
+)
 
 
 class GithubClientTestCase(unittest.TestCase):
@@ -28,6 +33,23 @@ class GithubClientTestCase(unittest.TestCase):
 
         self.assertIn("GitHub API error 403", str(error.exception))
         self.assertIn("rate limit exceeded", str(error.exception))
+
+    @patch("src.github_client._request_json")
+    def test_get_default_branch_head_sha_returns_commit_sha(self, mock_request_json):
+        mock_request_json.return_value = {
+            "commit": {
+                "sha": "abc123def456",
+            }
+        }
+
+        sha = _get_default_branch_head_sha(
+            owner_login="demo",
+            repo_name="sample",
+            default_branch="main",
+            header_candidates=_get_header_candidates(),
+        )
+
+        self.assertEqual("abc123def456", sha)
 
 
 if __name__ == "__main__":

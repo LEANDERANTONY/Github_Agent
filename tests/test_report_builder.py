@@ -131,12 +131,20 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertIn("README file detected.", audit.strengths)
 
     @patch("src.report_builder.build_portfolio_score")
+    @patch("src.report_builder.save_cached_report")
+    @patch("src.report_builder.load_cached_report")
+    @patch("src.report_builder.build_freshness_signature")
+    @patch("src.report_builder.build_analysis_key")
     @patch("src.report_builder.analyze_repo")
     @patch("src.report_builder.run_repo_checks")
     def test_build_portfolio_feedback_uses_deterministic_format_for_single_repo(
         self,
         mock_run_repo_checks,
         mock_analyze_repo,
+        mock_build_analysis_key,
+        mock_build_freshness_signature,
+        mock_load_cached_report,
+        mock_save_cached_report,
         mock_build_portfolio_score,
     ):
         repo_fact = RepoFacts(name="demo", description="Demo repo", languages={"Python": 100})
@@ -159,6 +167,9 @@ class ReportBuilderTestCase(unittest.TestCase):
 
         mock_run_repo_checks.return_value = repo_check
         mock_analyze_repo.return_value = repo_audit
+        mock_build_analysis_key.return_value = "analysis-key"
+        mock_build_freshness_signature.return_value = "freshness-signature"
+        mock_load_cached_report.return_value = None
         mock_build_portfolio_score.return_value = ScoreSummary(
             overall=72,
             label="Strong",
@@ -175,8 +186,13 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertIn("- **Readable README**: Setup and usage are easy to follow.", report.feedback_markdown)
         self.assertIn("## Findings", report.feedback_markdown)
         self.assertIn("- No tests found.", report.feedback_markdown)
+        mock_save_cached_report.assert_called_once()
 
     @patch("src.report_builder.build_portfolio_score")
+    @patch("src.report_builder.save_cached_report")
+    @patch("src.report_builder.load_cached_report")
+    @patch("src.report_builder.build_freshness_signature")
+    @patch("src.report_builder.build_analysis_key")
     @patch("src.report_builder.summarize_portfolio")
     @patch("src.report_builder.analyze_repo")
     @patch("src.report_builder.run_repo_checks")
@@ -185,6 +201,10 @@ class ReportBuilderTestCase(unittest.TestCase):
         mock_run_repo_checks,
         mock_analyze_repo,
         mock_summarize_portfolio,
+        mock_build_analysis_key,
+        mock_build_freshness_signature,
+        mock_load_cached_report,
+        mock_save_cached_report,
         mock_build_portfolio_score,
     ):
         repo_facts = [
@@ -230,6 +250,9 @@ class ReportBuilderTestCase(unittest.TestCase):
 
         mock_run_repo_checks.side_effect = repo_checks
         mock_analyze_repo.side_effect = repo_audits
+        mock_build_analysis_key.return_value = "analysis-key"
+        mock_build_freshness_signature.return_value = "freshness-signature"
+        mock_load_cached_report.return_value = None
         mock_summarize_portfolio.return_value = PortfolioSummary(
             summary="Useful portfolio start.",
             strongest_repos=["demo-a"],
@@ -254,6 +277,49 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertIn("- **Readable README**: Setup and usage are easy to follow.", report.feedback_markdown)
         self.assertIn("1. **Add homepage**: Publish a simple public entry point.", report.feedback_markdown)
         self.assertIn("- No homepage set.", report.feedback_markdown)
+        mock_save_cached_report.assert_called_once()
+
+    @patch("src.report_builder.load_cached_report")
+    @patch("src.report_builder.build_freshness_signature")
+    @patch("src.report_builder.build_analysis_key")
+    @patch("src.report_builder.run_repo_checks")
+    def test_build_portfolio_feedback_returns_cached_report_when_repo_fingerprint_matches(
+        self,
+        mock_run_repo_checks,
+        mock_build_analysis_key,
+        mock_build_freshness_signature,
+        mock_load_cached_report,
+    ):
+        repo_fact = RepoFacts(
+            name="demo",
+            description="Demo repo",
+            owner_login="demo",
+            updated_at="2026-03-10T00:00:00Z",
+            default_branch="main",
+            default_branch_head_sha="abc123",
+            languages={"Python": 100},
+        )
+        cached_report = PortfolioReport(
+            github_username="demo",
+            repo_count=1,
+            feedback_markdown="# Cached",
+            analysis_label="Selected Repository Analysis",
+            repo_facts=[repo_fact],
+            repo_checks=[RepoCheckResult(repo_name="demo")],
+            repo_audits=[RepoAudit(repo_name="demo")],
+        )
+
+        mock_build_analysis_key.return_value = "analysis-key"
+        mock_build_freshness_signature.return_value = "freshness-signature"
+        mock_load_cached_report.return_value = cached_report
+
+        report = build_portfolio_feedback(
+            github_username="demo",
+            repo_facts=[repo_fact],
+        )
+
+        self.assertEqual("# Cached", report.feedback_markdown)
+        mock_run_repo_checks.assert_not_called()
 
 
 if __name__ == "__main__":

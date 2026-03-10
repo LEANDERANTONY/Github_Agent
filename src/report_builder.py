@@ -1,5 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor
 
+from src.analysis_store import (
+    build_analysis_key,
+    build_freshness_signature,
+    load_cached_report,
+    save_cached_report,
+)
 from src.config import REPO_ANALYSIS_MAX_WORKERS
 from src.github_client import get_portfolio_repo_facts
 from src.openai_service import analyze_repo, summarize_portfolio
@@ -254,6 +260,18 @@ def build_portfolio_feedback(
             skip_forks=skip_forks,
         )
 
+    analysis_key = build_analysis_key(
+        github_username=normalized_username,
+        selected_repo_names=selected_repo_names,
+        max_repos=max_repos,
+        skip_forks=skip_forks,
+    )
+    freshness_signature = build_freshness_signature(repo_facts)
+    cached_report = load_cached_report(analysis_key, freshness_signature)
+    if cached_report:
+        _update_progress(progress_callback, "Loaded saved analysis from persistent cache.", 100)
+        return cached_report
+
     _update_progress(progress_callback, "Running deterministic checks...", 30)
     repo_checks = [run_repo_checks(repo_fact) for repo_fact in repo_facts]
     max_workers = min(REPO_ANALYSIS_MAX_WORKERS, max(1, len(repo_facts)))
@@ -288,5 +306,11 @@ def build_portfolio_feedback(
     )
     _update_progress(progress_callback, "Building final report...", 90)
     report.feedback_markdown = _format_markdown_report(report)
+    save_cached_report(
+        analysis_key=analysis_key,
+        github_username=normalized_username,
+        freshness_signature=freshness_signature,
+        report=report,
+    )
     _update_progress(progress_callback, "Analysis complete.", 100)
     return report

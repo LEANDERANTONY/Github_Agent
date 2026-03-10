@@ -105,6 +105,16 @@ Improved the beginning of single-repository exports so the target repository is 
 - made it clear which repository a single-repo report belongs to before the score section starts
 - added tests to lock in the updated header structure
 
+## March 10, 2026 - Persistent Analysis Cache
+
+Added the first durable caching layer for repeated analysis runs:
+
+- added a SQLite-backed analysis store in `src/analysis_store.py`
+- cache keys now include analysis scope and are invalidated using repository `updated_at`, default branch, and default-branch head commit SHA
+- repository facts now capture the latest default-branch commit SHA from GitHub
+- completed reports are now reused across browser sessions when the repository fingerprint has not changed
+- added regression tests for cache round-trips, cached-report reuse, and commit-SHA fetch behavior
+
 ---
 
 ## Next Steps

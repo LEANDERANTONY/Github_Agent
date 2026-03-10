@@ -7,7 +7,7 @@ The app combines:
 - GitHub API metadata and repository content checks
 - deterministic scoring across documentation, discoverability, engineering, maintenance, and originality
 - per-repository LLM analysis using `gpt-5-mini`
-- portfolio-level synthesis and final polished report generation using `gpt-5.4`
+- portfolio-level synthesis using `gpt-5.4`
 
 It is designed for two use cases:
 
@@ -50,6 +50,7 @@ For portfolio-level analysis, the app also:
 - Skip forks for portfolio-slice mode
 - Limit analysis to the most recently updated `N` repositories
 - Cached GitHub fetches in the UI for faster repeated runs
+- Persistent SQLite-backed report caching with invalidation based on repository `updated_at` and default-branch commit SHA
 - Repository scoring with visible category breakdowns
 - Repo-by-repo audit panels in the UI
 - Downloadable final report in Markdown or PDF
@@ -100,9 +101,11 @@ Module responsibilities:
 - `src/repo_checks.py`
   Deterministic checks and score generation
 - `src/openai_service.py`
-  OpenAI model calls for per-repo analysis, portfolio summary, and final polished report
+  OpenAI model calls for per-repo analysis and portfolio summary
 - `src/report_builder.py`
-  End-to-end orchestration of data collection, checks, LLM analysis, and report generation
+  End-to-end orchestration of data collection, cache lookup, checks, LLM analysis, and report generation
+- `src/analysis_store.py`
+  Persistent SQLite-backed analysis cache and report serialization
 - `src/exporters.py`
   Markdown and PDF export helpers
 
@@ -112,8 +115,6 @@ Module responsibilities:
   per-repository analysis
 - `gpt-5.4`
   portfolio summary
-- `gpt-5.4`
-  final polished report
 
 ## Setup
 
@@ -191,23 +192,27 @@ venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_bui
 `Single repository`
 
 - fetch one repository's README, language map, and root files
+- fetch the default-branch head commit SHA for cache freshness validation
 - run deterministic checks
-- generate one repo audit
-- produce a polished repository-only report
+- reuse a saved report when repo freshness metadata still matches
+- otherwise generate one repo audit and produce a deterministic repository-only report
 
 `Portfolio slice`
 
 - fetch the selected or filtered repositories
+- fetch freshness metadata for the selected repositories
 - run repo checks and scoring for each repository
 - generate one repo audit per repository
 - synthesize a portfolio summary
-- generate a polished final portfolio report
+- reuse a saved report when the cached repo fingerprint still matches
+- otherwise generate a deterministic final portfolio report
 
 ## Current Limitations
 
 - GitHub OAuth now requires you to configure your own GitHub OAuth app credentials and callback URL before browser-based sign-in will appear
 - The app analyzes public repositories only; private repository access is intentionally not requested in the current OAuth flow
 - Large portfolios can still take time because each repository gets its own model call and GitHub content fetches are still sequential
+- Persistent caching currently uses local SQLite storage, which is appropriate for local or single-instance hosting but not yet a shared distributed cache
 - The scoring model is rule-based and intentionally simple
 - PDF formatting is presentation-ready for normal reports, but the export layer can still be refined further for long portfolios and branded templates
 - The higher-quality PDF path depends on Playwright/Chromium being available in the runtime environment
@@ -227,4 +232,4 @@ venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_bui
 
 ## Status
 
-This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, scoring system, export flow, polished Streamlit interface, and GitHub OAuth sign-in support are implemented. The next major product milestone is deployment hardening and broader failure-mode coverage.
+This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, persistent analysis caching, deterministic report generation, export flow, polished Streamlit interface, and GitHub OAuth sign-in support are implemented. The next major product milestone is deployment hardening and broader failure-mode coverage.
