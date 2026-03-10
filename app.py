@@ -142,83 +142,6 @@ def _inject_styles():
                 font-size: 0.92rem;
             }
 
-            .portfolio-shell {
-                background: #ffffff;
-                border: 1px solid var(--surface-line);
-                border-radius: 24px;
-                box-shadow: var(--shadow);
-                padding: 1rem 1rem 1.15rem 1rem;
-                margin: 0.35rem 0 1.2rem 0;
-            }
-
-            .portfolio-shell-grid,
-            .portfolio-breakdown-grid {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 1.1rem;
-            }
-
-            .portfolio-breakdown-title {
-                color: var(--ink);
-                font-size: 1.05rem;
-                font-weight: 800;
-                margin: 1.05rem 0 0.8rem 0;
-            }
-
-            .portfolio-narrative {
-                background: linear-gradient(180deg, rgba(5, 12, 24, 0.98), rgba(9, 20, 38, 0.98));
-                border: 1px solid rgba(96, 165, 250, 0.16);
-                border-radius: 22px;
-                padding: 1.2rem 1.25rem 1.3rem;
-                margin-top: 0.95rem;
-                box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
-            }
-
-            .portfolio-narrative,
-            .portfolio-narrative * {
-                color: #eef4ff !important;
-            }
-
-            .portfolio-narrative h4 {
-                color: #f8fbff !important;
-                font-size: 1.32rem;
-                font-weight: 800;
-                margin: 0 0 0.7rem 0;
-            }
-
-            .portfolio-narrative p {
-                color: #f3f7ff !important;
-                margin: 0 0 1rem 0;
-                line-height: 1.72;
-            }
-
-            .portfolio-narrative-grid {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 1.2rem 1.45rem;
-                margin-top: 1rem;
-                padding-top: 1rem;
-                border-top: 1px solid rgba(96, 165, 250, 0.14);
-            }
-
-            .portfolio-narrative-block h5 {
-                color: #f8fbff !important;
-                font-size: 1.12rem;
-                font-weight: 800;
-                margin: 0 0 0.5rem 0;
-            }
-
-            .portfolio-narrative-block ul {
-                margin: 0;
-                padding-left: 1.1rem;
-            }
-
-            .portfolio-narrative-block li {
-                color: #eef4ff !important;
-                margin: 0 0 0.45rem 0;
-                line-height: 1.65;
-            }
-
             .repo-narrative {
                 background: linear-gradient(180deg, rgba(5, 12, 24, 0.98), rgba(9, 20, 38, 0.98));
                 border: 1px solid rgba(96, 165, 250, 0.16);
@@ -601,6 +524,21 @@ def _inject_styles():
                 color: #fff6d8 !important;
             }
 
+            div[data-testid="stAlertContentError"] {
+                background: transparent !important;
+                color: #ffe4e6 !important;
+            }
+
+            div[data-testid="stAlert"] div[data-testid="stAlertContainer"]:has(div[data-testid="stAlertContentError"]) {
+                background: linear-gradient(135deg, rgba(122, 24, 38, 0.96), rgba(91, 18, 33, 0.94)) !important;
+                border: 1px solid rgba(251, 113, 133, 0.34) !important;
+                box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
+            }
+
+            div[data-testid="stAlert"] div[data-testid="stAlertContainer"]:has(div[data-testid="stAlertContentError"]) * {
+                color: #ffe4e6 !important;
+            }
+
             @media (max-width: 900px) {
                 .block-container {
                     padding-top: 1.4rem;
@@ -615,10 +553,7 @@ def _inject_styles():
                 }
 
                 .repo-narrative-grid,
-                .repo-narrative-meta,
-                .portfolio-narrative-grid,
-                .portfolio-shell-grid,
-                .portfolio-breakdown-grid {
+                .repo-narrative-meta {
                     grid-template-columns: 1fr;
                 }
             }
@@ -687,30 +622,6 @@ def _render_metric_card(label, value, note, label_badge=None, emphasize=False):
     st.markdown(
         card_html,
         unsafe_allow_html=True,
-    )
-
-
-def _metric_card_html(label, value, note, label_badge=None, emphasize=False):
-    badge_html = ""
-    if label_badge:
-        badge_html = '<div class="score-pill {klass}">{label}</div>'.format(
-            klass=_score_pill_class(label_badge),
-            label=_escape(label_badge),
-        )
-
-    value_class = "metric-value-copy" if emphasize else "metric-value"
-    return "".join(
-        [
-            '<div class="metric-card">',
-            '<div class="metric-label">{label}</div>'.format(label=_escape(label)),
-            '<div class="{value_class}">{value}</div>'.format(
-                value_class=value_class,
-                value=_escape(value),
-            ),
-            badge_html,
-            '<div class="metric-note">{note}</div>'.format(note=_escape(note)),
-            "</div>",
-        ]
     )
 
 
@@ -806,45 +717,6 @@ def _render_portfolio_repo_narrative(repo_audit, repo_check):
         signals=_render_list_html(repo_check.strengths, "No positive signals identified."),
     )
     st.markdown(narrative_html, unsafe_allow_html=True)
-
-
-def _portfolio_narrative_html(report):
-    return textwrap.dedent(
-        """
-        <div class="portfolio-narrative">
-            <h4>Portfolio Summary</h4>
-            <p>{summary}</p>
-            <div class="portfolio-narrative-grid">
-                <div class="portfolio-narrative-block">
-                    <h5>Strongest Repositories</h5>
-                    <ul>{strongest_repos}</ul>
-                </div>
-                <div class="portfolio-narrative-block">
-                    <h5>Improvement Areas</h5>
-                    <ul>{improvement_areas}</ul>
-                </div>
-                <div class="portfolio-narrative-block">
-                    <h5>Top Actions</h5>
-                    <ul>{top_actions}</ul>
-                </div>
-            </div>
-        </div>
-        """
-    ).format(
-        summary=_escape(report.portfolio_summary.summary or "No portfolio summary generated."),
-        strongest_repos=_render_list_html(
-            report.portfolio_summary.strongest_repos,
-            "No strongest repositories identified.",
-        ),
-        improvement_areas=_render_list_html(
-            report.portfolio_summary.improvement_areas,
-            "No improvement areas identified.",
-        ),
-        top_actions=_render_list_html(
-            report.portfolio_summary.top_actions,
-            "No top actions identified.",
-        ),
-    )
 
 
 def _format_cache_timestamp(timestamp):
@@ -1125,47 +997,52 @@ def _render_single_repo_report(report):
 
 
 def _render_portfolio_report(report):
-    strongest_count = len(report.portfolio_summary.strongest_repos or [])
-    category_cards = "".join(
-        _metric_card_html(category, "{score}/100".format(score=score), "Category score")
-        for category, score in report.portfolio_score.category_scores.items()
-    )
-    shell_html = textwrap.dedent(
-        """
-        <div class="portfolio-shell">
-            <div class="portfolio-shell-grid">
-                {portfolio_score_card}
-                {repo_count_card}
-                {standout_card}
-            </div>
-            <div class="portfolio-breakdown-title">Score Breakdown</div>
-            <div class="portfolio-breakdown-grid">
-                {category_cards}
-            </div>
-            {portfolio_narrative}
-        </div>
-        """
-    ).format(
-        portfolio_score_card=_metric_card_html(
+    hero_col1, hero_col2, hero_col3 = st.columns([1.05, 1.15, 1.15])
+    with hero_col1:
+        _render_metric_card(
             "Portfolio Score",
             "{score}/100".format(score=report.portfolio_score.overall),
             "Averages deterministic repo scores across the selected analysis scope.",
             report.portfolio_score.label or "Not rated.",
-        ),
-        repo_count_card=_metric_card_html(
+        )
+    with hero_col2:
+        _render_metric_card(
             "Repositories Reviewed",
             str(report.repo_count),
             "Scope-aware count after filters, selection rules, and fork exclusions.",
-        ),
-        standout_card=_metric_card_html(
+        )
+    with hero_col3:
+        strongest_count = len(report.portfolio_summary.strongest_repos or [])
+        _render_metric_card(
             "Standout Repos",
             str(strongest_count),
             "Repositories the model highlighted as the strongest signals in the portfolio.",
-        ),
-        category_cards=category_cards,
-        portfolio_narrative=_portfolio_narrative_html(report),
-    )
-    st.markdown(shell_html, unsafe_allow_html=True)
+        )
+
+    _render_score_breakdown(report.portfolio_score)
+
+    st.markdown("### Portfolio Summary")
+    st.write(report.portfolio_summary.summary or "No portfolio summary generated.")
+
+    panel_col1, panel_col2, panel_col3 = st.columns(3)
+    with panel_col1:
+        _render_bullet_panel(
+            "Strongest Repositories",
+            report.portfolio_summary.strongest_repos,
+            "No strongest repositories identified.",
+        )
+    with panel_col2:
+        _render_bullet_panel(
+            "Improvement Areas",
+            report.portfolio_summary.improvement_areas,
+            "No improvement areas identified.",
+        )
+    with panel_col3:
+        _render_bullet_panel(
+            "Top Actions",
+            report.portfolio_summary.top_actions,
+            "No top actions identified.",
+        )
 
     st.markdown("### Repository Audits")
     for repo_audit, repo_check in zip(report.repo_audits, report.repo_checks):
@@ -1282,7 +1159,11 @@ def main():
                 st.session_state.report = None
                 st.session_state.analysis_status_message = ""
         except Exception as error:
-            st.error(_error_message(error))
+            message = _error_message(error)
+            if isinstance(error, GithubRateLimitError):
+                st.warning(message)
+            else:
+                st.error(message)
 
     repo_catalog = st.session_state.repo_catalog
 
