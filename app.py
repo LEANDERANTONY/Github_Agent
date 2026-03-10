@@ -3,6 +3,7 @@ import textwrap
 from datetime import datetime
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.errors import AppError, ExportError, GithubRateLimitError
 from src.exporters import generate_markdown, generate_pdf
@@ -142,6 +143,29 @@ def _inject_styles():
             .repo-meta {
                 color: var(--muted);
                 font-size: 0.92rem;
+            }
+
+            .single-shell-marker {
+                display: none;
+            }
+
+            .single-shell-active {
+                background: #ffffff !important;
+                border: 1px solid var(--surface-line) !important;
+                border-radius: 24px !important;
+                box-shadow: var(--shadow) !important;
+                padding: 0.95rem 0.95rem 1.1rem 0.95rem !important;
+                margin: 0.35rem 0 1.2rem 0 !important;
+            }
+
+            .single-shell-active h3,
+            .single-shell-active h4,
+            .single-shell-active h5,
+            .single-shell-active p,
+            .single-shell-active li,
+            .single-shell-active label,
+            .single-shell-active [data-testid="stMarkdownContainer"] {
+                color: var(--ink) !important;
             }
 
             .repo-narrative {
@@ -346,6 +370,20 @@ def _inject_styles():
 
             .stExpander [data-testid="stMarkdownContainer"] .repo-narrative h4,
             .stExpander [data-testid="stMarkdownContainer"] .repo-narrative h5 {
+                color: #f8fbff !important;
+            }
+
+            .single-shell-active .repo-narrative,
+            .single-shell-active .repo-narrative p,
+            .single-shell-active .repo-narrative li,
+            .single-shell-active .repo-narrative div,
+            .single-shell-active .repo-narrative span,
+            .single-shell-active .repo-narrative ul {
+                color: #eef4ff !important;
+            }
+
+            .single-shell-active .repo-narrative h4,
+            .single-shell-active .repo-narrative h5 {
                 color: #f8fbff !important;
             }
 
@@ -732,6 +770,76 @@ def _render_portfolio_repo_narrative(repo_audit, repo_check):
     st.markdown(narrative_html, unsafe_allow_html=True)
 
 
+def _render_single_repo_narrative(repo_audit, repo_check):
+    narrative_html = textwrap.dedent(
+        """
+        <div class="repo-narrative">
+            <h4>Repository Summary</h4>
+            <p>{summary}</p>
+            <h4>What It Does</h4>
+            <p>{what_it_does}</p>
+            <div class="repo-narrative-grid row-divider">
+                <div class="repo-narrative-block">
+                    <h5>Strengths</h5>
+                    <ul>{strengths}</ul>
+                </div>
+                <div class="repo-narrative-block">
+                    <h5>Weaknesses</h5>
+                    <ul>{weaknesses}</ul>
+                </div>
+            </div>
+            <div class="repo-narrative-grid row-divider">
+                <div class="repo-narrative-block">
+                    <h5>Recommendations</h5>
+                    <ul>{recommendations}</ul>
+                </div>
+                <div class="repo-narrative-block">
+                    <h5>Findings</h5>
+                    <ul>{findings}</ul>
+                </div>
+            </div>
+            <div class="repo-narrative-meta">
+                <div class="repo-narrative-block">
+                    <h5>Key Technologies</h5>
+                    <ul>{technologies}</ul>
+                </div>
+                <div class="repo-narrative-block">
+                    <h5>Positive Signals</h5>
+                    <ul>{signals}</ul>
+                </div>
+            </div>
+        </div>
+        """
+    ).format(
+        summary=_escape(repo_audit.summary or "No summary generated."),
+        what_it_does=_escape(repo_audit.what_it_does or "Not enough information."),
+        strengths=_render_list_html(repo_audit.strengths, "No strengths generated."),
+        weaknesses=_render_list_html(repo_audit.weaknesses, "No weaknesses generated."),
+        recommendations=_render_list_html(repo_audit.recommendations, "No recommendations generated."),
+        findings=_render_list_html(repo_check.findings, "No findings."),
+        technologies=_render_list_html(repo_audit.key_technologies, "Not identified."),
+        signals=_render_list_html(repo_check.strengths, "No positive signals identified."),
+    )
+    st.markdown(narrative_html, unsafe_allow_html=True)
+
+
+def _activate_single_report_shell():
+    components.html(
+        """
+        <script>
+        const marker = window.parent.document.getElementById("single-shell-marker");
+        if (marker) {
+            const wrapper = marker.closest('div[data-testid="stVerticalBlockBorderWrapper"]');
+            if (wrapper) {
+                wrapper.classList.add("single-shell-active");
+            }
+        }
+        </script>
+        """,
+        height=0,
+    )
+
+
 def _format_cache_timestamp(timestamp):
     if not timestamp:
         return ""
@@ -943,72 +1051,40 @@ def _render_single_repo_report(report):
     repo_audit = report.repo_audits[0]
     repo_check = report.repo_checks[0]
 
-    st.markdown('<div class="single-report-body">', unsafe_allow_html=True)
-    _render_repo_header(
-        repo_audit.repo_name,
-        "Single repository audit with recruiter-oriented feedback and deterministic checks.",
-    )
+    with st.container(border=True):
+        st.markdown('<div id="single-shell-marker" class="single-shell-marker"></div>', unsafe_allow_html=True)
+        _activate_single_report_shell()
 
-    hero_col1, hero_col2, hero_col3 = st.columns([1.05, 1.5, 1.5])
-    with hero_col1:
-        _render_metric_card(
-            "Repository Score",
-            "{score}/100".format(score=repo_check.score.overall),
-            "Weighted from documentation, discoverability, engineering, maintenance, and originality.",
-            repo_check.score.label or "Not rated.",
-        )
-    with hero_col2:
-        _render_metric_card(
-            "Showcase Value",
-            repo_audit.showcase_value or "Not rated",
-            "How compelling this repo is as a portfolio artifact.",
-            emphasize=True,
-        )
-    with hero_col3:
-        _render_metric_card(
-            "Recruiter Signal",
-            repo_audit.recruiter_signal or "Not rated",
-            "What this repository likely communicates during a quick profile review.",
-            emphasize=True,
+        _render_repo_header(
+            repo_audit.repo_name,
+            "Single repository audit with recruiter-oriented feedback and deterministic checks.",
         )
 
-    _render_score_breakdown(repo_check.score)
+        hero_col1, hero_col2, hero_col3 = st.columns([1.05, 1.5, 1.5])
+        with hero_col1:
+            _render_metric_card(
+                "Repository Score",
+                "{score}/100".format(score=repo_check.score.overall),
+                "Weighted from documentation, discoverability, engineering, maintenance, and originality.",
+                repo_check.score.label or "Not rated.",
+            )
+        with hero_col2:
+            _render_metric_card(
+                "Showcase Value",
+                repo_audit.showcase_value or "Not rated",
+                "How compelling this repo is as a portfolio artifact.",
+                emphasize=True,
+            )
+        with hero_col3:
+            _render_metric_card(
+                "Recruiter Signal",
+                repo_audit.recruiter_signal or "Not rated",
+                "What this repository likely communicates during a quick profile review.",
+                emphasize=True,
+            )
 
-    st.markdown("### Repository Summary")
-    st.write(repo_audit.summary or "No summary generated.")
-    st.markdown("#### What It Does")
-    st.write(repo_audit.what_it_does or "Not enough information.")
-
-    panel_col1, panel_col2 = st.columns(2)
-    with panel_col1:
-        _render_bullet_panel("Strengths", repo_audit.strengths, "No strengths generated.")
-    with panel_col2:
-        _render_bullet_panel("Weaknesses", repo_audit.weaknesses, "No weaknesses generated.")
-
-    action_col1, action_col2 = st.columns(2)
-    with action_col1:
-        _render_bullet_panel(
-            "Recommendations",
-            repo_audit.recommendations,
-            "No recommendations generated.",
-        )
-    with action_col2:
-        _render_bullet_panel(
-            "Findings",
-            repo_check.findings,
-            "No findings.",
-        )
-
-    final_col1, final_col2 = st.columns(2)
-    with final_col1:
-        _render_bullet_panel("Key Technologies", repo_audit.key_technologies, "Not identified.")
-    with final_col2:
-        _render_bullet_panel(
-            "Positive Signals",
-            repo_check.strengths,
-            "No positive signals identified.",
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
+        _render_score_breakdown(repo_check.score)
+        _render_single_repo_narrative(repo_audit, repo_check)
 
 
 def _render_portfolio_report(report):
