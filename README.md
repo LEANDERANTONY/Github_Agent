@@ -16,13 +16,47 @@ It is designed for two use cases:
 
 ## UI Preview
 
-### Repository Selection Flow
+### Landing Page
 
-![Repository selection UI](docs/screenshots/repo-selection.png)
+![Landing page](docs/screenshots/landing_page.jpg)
+
+### Username Repository Load
+
+![Username repository load](docs/screenshots/github_username_repoload.jpg)
+
+### OAuth Sign-In
+
+![GitHub OAuth sign-in](docs/screenshots/github_OAuth_signin.jpg)
+
+### Portfolio Slice Selection
+
+![Portfolio slice selection](docs/screenshots/portfolio_sliceanalysis_withslider.jpg)
 
 ### Single Repository Audit View
 
-![Single repository audit UI](docs/screenshots/single-repo-audit.png)
+![Single repository audit](docs/screenshots/singlerepo_forcefresh_analysis.jpg)
+
+### Cached Analysis State
+
+![Loaded from cache](docs/screenshots/analysis_loadedfrom_cache.jpg)
+
+### Multi-Repository Analysis View
+
+![Multi-repository selection](docs/screenshots/multirepo_analysis_selectionview.jpg)
+
+### Portfolio Summary View
+
+![Portfolio summary](docs/screenshots/multirepo_analysis_portfoliosummary.jpg)
+
+### PDF Export Preview
+
+![PDF export](docs/screenshots/pdf_export.jpg)
+
+## Sample Reports
+
+- Single repository PDF sample: [docs/reports/singlerepo_analysis_report.pdf](docs/reports/singlerepo_analysis_report.pdf)
+- Multi-repository PDF sample: [docs/reports/multirepo_analysis_with_portfoliosummary.pdf](docs/reports/multirepo_analysis_with_portfoliosummary.pdf)
+- Multi-repository Markdown sample: [docs/reports/multirepo_md_report.md](docs/reports/multirepo_md_report.md)
 
 ## What It Does
 
