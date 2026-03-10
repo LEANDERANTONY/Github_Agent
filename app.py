@@ -96,9 +96,11 @@ def _inject_styles():
             }
 
             .audit-copy {
-                color: var(--accent-strong) !important;
+                color: #2563eb !important;
                 font-size: 1rem;
                 line-height: 1.6;
+                font-weight: 500;
+                opacity: 1 !important;
                 margin: 0;
             }
 
@@ -345,6 +347,17 @@ def _inject_styles():
             .stExpander [data-testid="stMarkdownContainer"] .repo-narrative h4,
             .stExpander [data-testid="stMarkdownContainer"] .repo-narrative h5 {
                 color: #f8fbff !important;
+            }
+
+            .single-report-body [data-testid="stMarkdownContainer"] ul {
+                margin-top: 0.05rem !important;
+                margin-bottom: 0.3rem !important;
+                padding-left: 1.08rem !important;
+            }
+
+            .single-report-body [data-testid="stMarkdownContainer"] li {
+                margin-bottom: 0.34rem !important;
+                line-height: 1.62 !important;
             }
 
             .stTextInput input,
@@ -930,6 +943,7 @@ def _render_single_repo_report(report):
     repo_audit = report.repo_audits[0]
     repo_check = report.repo_checks[0]
 
+    st.markdown('<div class="single-report-body">', unsafe_allow_html=True)
     _render_repo_header(
         repo_audit.repo_name,
         "Single repository audit with recruiter-oriented feedback and deterministic checks.",
@@ -974,7 +988,7 @@ def _render_single_repo_report(report):
     action_col1, action_col2 = st.columns(2)
     with action_col1:
         _render_bullet_panel(
-            "Top Priority Actions",
+            "Recommendations",
             repo_audit.recommendations,
             "No recommendations generated.",
         )
@@ -987,13 +1001,14 @@ def _render_single_repo_report(report):
 
     final_col1, final_col2 = st.columns(2)
     with final_col1:
-        _render_bullet_panel("Technologies", repo_audit.key_technologies, "Not identified.")
+        _render_bullet_panel("Key Technologies", repo_audit.key_technologies, "Not identified.")
     with final_col2:
         _render_bullet_panel(
             "Positive Signals",
             repo_check.strengths,
             "No positive signals identified.",
         )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _render_portfolio_report(report):
@@ -1039,7 +1054,7 @@ def _render_portfolio_report(report):
         )
     with panel_col3:
         _render_bullet_panel(
-            "Top Actions",
+            "Recommendations",
             report.portfolio_summary.top_actions,
             "No top actions identified.",
         )
