@@ -144,6 +144,7 @@ def _report_from_payload(payload):
         cache_hit=bool(payload.get("cache_hit", False)),
         cache_status=payload.get("cache_status", ""),
         cache_saved_at=payload.get("cache_saved_at", ""),
+        report_warnings=list(payload.get("report_warnings", [])),
         repo_facts=[_repo_facts_from_payload(item) for item in payload.get("repo_facts", [])],
         repo_checks=[_repo_check_from_payload(item) for item in payload.get("repo_checks", [])],
         repo_audits=[_repo_audit_from_payload(item) for item in payload.get("repo_audits", [])],

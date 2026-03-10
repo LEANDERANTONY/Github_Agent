@@ -7,6 +7,7 @@ from src.analysis_store import (
     save_cached_report,
 )
 from src.config import REPO_ANALYSIS_MAX_WORKERS
+from src.errors import OpenAIAnalysisError
 from src.github_client import get_portfolio_repo_facts
 from src.openai_service import analyze_repo, summarize_portfolio
 from src.repo_checks import build_portfolio_score, run_repo_checks
@@ -235,11 +236,34 @@ def _fallback_repo_audit(repo_fact, repo_check, error):
     )
 
 
+def _fallback_portfolio_summary(repo_audits, repo_checks, error):
+    strongest_repos = [
+        repo_check.repo_name
+        for repo_check in sorted(repo_checks, key=lambda item: item.score.overall, reverse=True)[:3]
+    ]
+    improvement_areas = []
+    for repo_check in repo_checks:
+        improvement_areas.extend(repo_check.findings[:2])
+
+    return PortfolioSummary(
+        summary=(
+            "Portfolio summary model output was unavailable, so this summary was built from deterministic "
+            "checks and repository-level audit results."
+        ),
+        strongest_repos=strongest_repos or ["No strongest repositories identified."],
+        improvement_areas=improvement_areas[:5] or ["No improvement areas identified."],
+        top_actions=improvement_areas[:5] or ["Retry the portfolio summary generation later."],
+    )
+
+
 def _analyze_repo_pair(repo_fact, repo_check):
     try:
-        return analyze_repo(repo_fact, repo_check)
+        return analyze_repo(repo_fact, repo_check), ""
     except Exception as error:
-        return _fallback_repo_audit(repo_fact, repo_check, error)
+        warning = (
+            "OpenAI repo analysis failed for `{repo}`. A deterministic fallback summary was used instead."
+        ).format(repo=repo_fact.name)
+        return _fallback_repo_audit(repo_fact, repo_check, error), warning
 
 
 def build_portfolio_feedback(
@@ -280,26 +304,35 @@ def build_portfolio_feedback(
 
     _update_progress(progress_callback, "Generating repository analyses...", 55)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        repo_audits = list(
+        repo_results = list(
             executor.map(
                 _analyze_repo_pair,
                 repo_facts,
                 repo_checks,
             )
         )
+    repo_audits = [item[0] for item in repo_results]
+    report_warnings = [item[1] for item in repo_results if item[1]]
 
     portfolio_summary = PortfolioSummary()
     analysis_label = "Selected Repository Analysis" if len(repo_facts) == 1 else "Portfolio Analysis"
 
     if len(repo_audits) > 1:
         _update_progress(progress_callback, "Generating portfolio summary...", 75)
-        portfolio_summary = summarize_portfolio(repo_audits, repo_checks)
+        try:
+            portfolio_summary = summarize_portfolio(repo_audits, repo_checks)
+        except OpenAIAnalysisError as error:
+            portfolio_summary = _fallback_portfolio_summary(repo_audits, repo_checks, error)
+            report_warnings.append(
+                "OpenAI portfolio summary failed. A deterministic portfolio summary was used instead."
+            )
 
     report = PortfolioReport(
         github_username=normalized_username or "my",
         repo_count=len(repo_facts),
         feedback_markdown="",
         analysis_label=analysis_label,
+        report_warnings=report_warnings,
         repo_facts=repo_facts,
         repo_checks=repo_checks,
         repo_audits=repo_audits,

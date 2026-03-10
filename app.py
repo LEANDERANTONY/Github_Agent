@@ -4,6 +4,7 @@ from datetime import datetime
 
 import streamlit as st
 
+from src.errors import AppError, ExportError, GithubRateLimitError
 from src.exporters import generate_markdown, generate_pdf
 from src.github_auth import (
     build_authorize_url,
@@ -403,6 +404,17 @@ def _render_cache_status(report):
     st.success(message)
 
 
+def _error_message(error):
+    if isinstance(error, AppError):
+        return error.user_message
+    return str(error)
+
+
+def _render_report_warnings(report):
+    for warning in report.report_warnings or []:
+        st.warning(warning)
+
+
 def _normalize_username(username):
     return (username or "").strip()
 
@@ -751,14 +763,18 @@ def _render_downloads(report, github_username):
         ],
     )
 
-    if file_format == "Markdown (.md)":
-        file_data = generate_markdown(report.feedback_markdown)
-        mime_type = "text/markdown"
-        file_ext = "md"
-    else:
-        file_data = generate_pdf(report.feedback_markdown)
-        mime_type = "application/pdf"
-        file_ext = "pdf"
+    try:
+        if file_format == "Markdown (.md)":
+            file_data = generate_markdown(report.feedback_markdown)
+            mime_type = "text/markdown"
+            file_ext = "md"
+        else:
+            file_data = generate_pdf(report.feedback_markdown)
+            mime_type = "application/pdf"
+            file_ext = "pdf"
+    except ExportError as error:
+        st.error(_error_message(error))
+        return
 
     st.download_button(
         label="Download Report as {label}".format(label=file_format.split()[0]),
@@ -778,9 +794,7 @@ def main():
     try:
         _handle_github_oauth_callback()
     except Exception as error:
-        st.session_state.github_auth_error = "GitHub sign-in failed: {error}".format(
-            error=error
-        )
+        st.session_state.github_auth_error = _error_message(error)
     _render_intro()
     _render_auth_panel()
 
@@ -818,7 +832,7 @@ def main():
                 )
                 st.session_state.report = None
         except Exception as error:
-            st.error("Error: {error}".format(error=error))
+            st.error(_error_message(error))
 
     repo_catalog = st.session_state.repo_catalog
 
@@ -907,7 +921,11 @@ def main():
                     )
                     status_placeholder.success("Analysis complete.")
                 except Exception as error:
-                    st.error("Error: {error}".format(error=error))
+                    message = _error_message(error)
+                    if isinstance(error, GithubRateLimitError):
+                        st.warning(message)
+                    else:
+                        st.error(message)
 
     report = st.session_state.report
     if report:
@@ -915,6 +933,7 @@ def main():
         st.subheader(report.analysis_label or "Portfolio Analysis")
         st.caption("Analyzed repositories: {count}".format(count=report.repo_count))
         _render_cache_status(report)
+        _render_report_warnings(report)
 
         if report.repo_count == 1:
             _render_single_repo_report(report)

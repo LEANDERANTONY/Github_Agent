@@ -11,6 +11,7 @@ from src.config import (
     load_github_oauth_client_secret,
     load_github_oauth_redirect_uri,
 )
+from src.errors import GithubOAuthError
 
 
 GITHUB_OAUTH_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
@@ -73,17 +74,28 @@ def exchange_code_for_token(code, state=None):
     if state:
         payload["state"] = state
 
-    response = requests.post(
-        GITHUB_OAUTH_ACCESS_TOKEN_URL,
-        headers={"Accept": "application/json"},
-        data=payload,
-        timeout=REQUEST_TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
+    try:
+        response = requests.post(
+            GITHUB_OAUTH_ACCESS_TOKEN_URL,
+            headers={"Accept": "application/json"},
+            data=payload,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+    except requests.Timeout as error:
+        raise GithubOAuthError(
+            "GitHub sign-in timed out during token exchange. Please try again.",
+            detail=str(error),
+        ) from error
+    except requests.RequestException as error:
+        raise GithubOAuthError(
+            "GitHub sign-in failed during token exchange. Please try again.",
+            detail=str(error),
+        ) from error
     token_payload = response.json()
 
     if token_payload.get("error"):
-        raise RuntimeError(
+        raise GithubOAuthError(
             "GitHub OAuth exchange failed: {error}".format(
                 error=token_payload.get("error_description") or token_payload["error"]
             )
@@ -91,20 +103,31 @@ def exchange_code_for_token(code, state=None):
 
     access_token = token_payload.get("access_token")
     if not access_token:
-        raise RuntimeError("GitHub OAuth exchange returned no access token.")
+        raise GithubOAuthError("GitHub OAuth exchange returned no access token.")
 
     return access_token
 
 
 def get_authenticated_user(github_token):
-    response = requests.get(
-        f"{GITHUB_API_BASE_URL}/user",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-            "Authorization": f"Bearer {github_token}",
-        },
-        timeout=REQUEST_TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
+    try:
+        response = requests.get(
+            f"{GITHUB_API_BASE_URL}/user",
+            headers={
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "Authorization": f"Bearer {github_token}",
+            },
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+    except requests.Timeout as error:
+        raise GithubOAuthError(
+            "GitHub sign-in timed out while loading your account. Please try again.",
+            detail=str(error),
+        ) from error
+    except requests.RequestException as error:
+        raise GithubOAuthError(
+            "GitHub sign-in succeeded, but loading your account failed. Please try again.",
+            detail=str(error),
+        ) from error
     return response.json()

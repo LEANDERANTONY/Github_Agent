@@ -16,6 +16,8 @@ from reportlab.platypus import (
     Spacer,
 )
 
+from src.errors import ExportError
+
 
 _MARKDOWN = MarkdownIt("commonmark", {"html": False})
 
@@ -1136,8 +1138,20 @@ def generate_pdf(text):
     try:
         return _generate_pdf_with_playwright(text)
     except Exception:
-        return _generate_pdf_with_reportlab(text)
+        try:
+            return _generate_pdf_with_reportlab(text)
+        except Exception as error:
+            raise ExportError(
+                "PDF export failed. Try downloading the Markdown report instead.",
+                detail=str(error),
+            ) from error
 
 
 def generate_markdown(text):
-    return BytesIO((text or "").encode("utf-8"))
+    try:
+        return BytesIO((text or "").encode("utf-8"))
+    except Exception as error:
+        raise ExportError(
+            "Markdown export failed. Please try again.",
+            detail=str(error),
+        ) from error

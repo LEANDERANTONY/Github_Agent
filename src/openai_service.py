@@ -8,6 +8,7 @@ from src.config import (
     OPENAI_REPO_MODEL,
     load_openai_key,
 )
+from src.errors import OpenAIAnalysisError
 from src.prompts import (
     build_final_report_prompt,
     build_portfolio_summary_prompt,
@@ -23,8 +24,17 @@ def _extract_json_payload(content):
         start = content.find("{")
         end = content.rfind("}")
         if start == -1 or end == -1:
-            raise
-        return json.loads(content[start : end + 1])
+            raise OpenAIAnalysisError(
+                "OpenAI returned an invalid response format.",
+                detail=content[:500],
+            )
+        try:
+            return json.loads(content[start : end + 1])
+        except json.JSONDecodeError as error:
+            raise OpenAIAnalysisError(
+                "OpenAI returned an invalid response format.",
+                detail=str(error),
+            ) from error
 
 
 def _normalize_text(value):
@@ -59,18 +69,30 @@ def _normalize_list(value):
 
 
 def _create_client():
-    return OpenAI(api_key=load_openai_key())
+    try:
+        return OpenAI(api_key=load_openai_key())
+    except Exception as error:
+        raise OpenAIAnalysisError(
+            "OpenAI is not configured correctly for analysis.",
+            detail=str(error),
+        ) from error
 
 
 def _request_json(client, prompt, model):
-    response = client.chat.completions.create(
-        model=model,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": "You are a helpful technical reviewer."},
-            {"role": "user", "content": prompt},
-        ],
-    )
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": "You are a helpful technical reviewer."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+    except Exception as error:
+        raise OpenAIAnalysisError(
+            "OpenAI analysis request failed. Please try again.",
+            detail=str(error),
+        ) from error
     content = response.choices[0].message.content or "{}"
     return _extract_json_payload(content)
 
@@ -98,7 +120,7 @@ def analyze_repo(repo_facts, repo_check, model=OPENAI_REPO_MODEL):
 
 def summarize_portfolio(repo_audits, repo_checks, model=OPENAI_PORTFOLIO_MODEL):
     if not repo_audits:
-        raise Exception("No repository audits available for portfolio summary.")
+        raise OpenAIAnalysisError("No repository audits available for portfolio summary.")
 
     client = _create_client()
     payload = _request_json(
@@ -117,15 +139,21 @@ def summarize_portfolio(repo_audits, repo_checks, model=OPENAI_PORTFOLIO_MODEL):
 
 def polish_portfolio_report(report, model=OPENAI_FINAL_REPORT_MODEL):
     client = _create_client()
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are a helpful technical reviewer."},
-            {"role": "user", "content": build_final_report_prompt(report)},
-        ],
-    )
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a helpful technical reviewer."},
+                {"role": "user", "content": build_final_report_prompt(report)},
+            ],
+        )
+    except Exception as error:
+        raise OpenAIAnalysisError(
+            "OpenAI report polishing failed. Please try again.",
+            detail=str(error),
+        ) from error
     content = response.choices[0].message.content or ""
     polished_report = content.strip()
     if not polished_report:
-        raise RuntimeError("OpenAI returned an empty final report.")
+        raise OpenAIAnalysisError("OpenAI returned an empty final report.")
     return polished_report

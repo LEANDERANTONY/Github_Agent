@@ -2,6 +2,9 @@ import unittest
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
+import requests
+
+from src.errors import GithubOAuthError
 from src.github_auth import (
     build_authorize_url,
     consume_oauth_state,
@@ -49,6 +52,24 @@ class GithubAuthTestCase(unittest.TestCase):
 
         self.assertEqual("token-xyz", token)
         mock_post.assert_called_once()
+
+    @patch("src.github_auth.requests.post")
+    @patch("src.github_auth.load_github_oauth_client_id", return_value="client-123")
+    @patch("src.github_auth.load_github_oauth_client_secret", return_value="secret-456")
+    @patch("src.github_auth.load_github_oauth_redirect_uri", return_value="http://localhost:8501")
+    def test_exchange_code_for_token_raises_oauth_error_on_http_failure(
+        self,
+        _mock_redirect_uri,
+        _mock_client_secret,
+        _mock_client_id,
+        mock_post,
+    ):
+        response = MagicMock()
+        response.raise_for_status.side_effect = requests.RequestException("boom")
+        mock_post.return_value = response
+
+        with self.assertRaises(GithubOAuthError):
+            exchange_code_for_token("code-123", state="state-abc")
 
     @patch("src.github_auth.load_github_oauth_client_id", return_value="client-123")
     @patch("src.github_auth.load_github_oauth_client_secret", return_value="secret-456")

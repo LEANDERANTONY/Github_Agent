@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from src.errors import OpenAIAnalysisError
 from src.report_builder import _fallback_repo_audit, _format_markdown_report, build_portfolio_feedback
 from src.schemas import PortfolioReport, PortfolioSummary, RepoAudit, RepoCheckResult, RepoFacts, ScoreSummary
 
@@ -285,6 +286,70 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertFalse(report.cache_hit)
         self.assertEqual("generated", report.cache_status)
         mock_save_cached_report.assert_called_once()
+
+    @patch("src.report_builder.build_portfolio_score")
+    @patch("src.report_builder.save_cached_report")
+    @patch("src.report_builder.load_cached_report")
+    @patch("src.report_builder.build_freshness_signature")
+    @patch("src.report_builder.build_analysis_key")
+    @patch("src.report_builder.summarize_portfolio")
+    @patch("src.report_builder.analyze_repo")
+    @patch("src.report_builder.run_repo_checks")
+    def test_build_portfolio_feedback_falls_back_when_portfolio_summary_fails(
+        self,
+        mock_run_repo_checks,
+        mock_analyze_repo,
+        mock_summarize_portfolio,
+        mock_build_analysis_key,
+        mock_build_freshness_signature,
+        mock_load_cached_report,
+        mock_save_cached_report,
+        mock_build_portfolio_score,
+    ):
+        repo_facts = [
+            RepoFacts(name="demo-a", description="Demo A", languages={"Python": 100}),
+            RepoFacts(name="demo-b", description="Demo B", languages={"SQL": 100}),
+        ]
+        repo_checks = [
+            RepoCheckResult(
+                repo_name="demo-a",
+                findings=["No tests found."],
+                score=ScoreSummary(overall=72, label="Strong", category_scores={"Engineering": 70}),
+            ),
+            RepoCheckResult(
+                repo_name="demo-b",
+                findings=["No homepage set."],
+                score=ScoreSummary(overall=68, label="Fair", category_scores={"Documentation": 60}),
+            ),
+        ]
+        repo_audits = [
+            RepoAudit(repo_name="demo-a", summary="A", what_it_does="A"),
+            RepoAudit(repo_name="demo-b", summary="B", what_it_does="B"),
+        ]
+
+        mock_run_repo_checks.side_effect = repo_checks
+        mock_analyze_repo.side_effect = repo_audits
+        mock_build_analysis_key.return_value = "analysis-key"
+        mock_build_freshness_signature.return_value = "freshness-signature"
+        mock_load_cached_report.return_value = None
+        mock_save_cached_report.return_value = "2026-03-10T12:00:00+00:00"
+        mock_summarize_portfolio.side_effect = OpenAIAnalysisError("summary failed")
+        mock_build_portfolio_score.return_value = ScoreSummary(
+            overall=70,
+            label="Strong",
+            category_scores={"Documentation": 78, "Engineering": 74},
+        )
+
+        report = build_portfolio_feedback(
+            github_username="demo",
+            repo_facts=repo_facts,
+        )
+
+        self.assertIn("Portfolio summary model output was unavailable", report.portfolio_summary.summary)
+        self.assertIn(
+            "OpenAI portfolio summary failed. A deterministic portfolio summary was used instead.",
+            report.report_warnings,
+        )
 
     @patch("src.report_builder.load_cached_report")
     @patch("src.report_builder.build_freshness_signature")

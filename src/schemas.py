@@ -71,6 +71,7 @@ class PortfolioReport:
     cache_hit: bool = False
     cache_status: str = ""
     cache_saved_at: str = ""
+    report_warnings: List[str] = field(default_factory=list)
     repo_facts: List[RepoFacts] = field(default_factory=list)
     repo_checks: List[RepoCheckResult] = field(default_factory=list)
     repo_audits: List[RepoAudit] = field(default_factory=list)

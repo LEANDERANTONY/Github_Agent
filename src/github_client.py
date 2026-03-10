@@ -7,6 +7,7 @@ from src.config import (
     GITHUB_PAGE_SIZE,
     REQUEST_TIMEOUT_SECONDS,
 )
+from src.errors import GithubApiError, GithubRateLimitError, GithubResourceNotFoundError
 from src.schemas import RepoFacts
 
 
@@ -25,12 +26,24 @@ def _request(url, header_candidates, params=None):
     last_response = None
 
     for headers in header_candidates:
-        response = requests.get(
-            url,
-            headers=headers,
-            params=params,
-            timeout=REQUEST_TIMEOUT_SECONDS,
-        )
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+        except requests.Timeout as error:
+            raise GithubApiError(
+                "GitHub took too long to respond. Please try again.",
+                detail=str(error),
+            ) from error
+        except requests.RequestException as error:
+            raise GithubApiError(
+                "GitHub could not be reached right now. Please try again.",
+                detail=str(error),
+            ) from error
+
         if response.status_code == 200:
             return response
 
@@ -38,8 +51,29 @@ def _request(url, header_candidates, params=None):
         if response.status_code != 401:
             break
 
-    raise Exception(
-        f"GitHub API error {last_response.status_code}: {last_response.text}"
+    status_code = last_response.status_code
+    response_text = last_response.text
+    rate_limit_remaining = last_response.headers.get("X-RateLimit-Remaining", "")
+    if status_code == 403 and (
+        rate_limit_remaining == "0" or "rate limit" in response_text.lower()
+    ):
+        raise GithubRateLimitError(
+            "GitHub rate limit reached. Wait a few minutes and try again.",
+            status_code=status_code,
+            detail=f"GitHub API error {status_code}: {response_text}",
+        )
+
+    if status_code == 404:
+        raise GithubResourceNotFoundError(
+            "The requested GitHub resource was not found or is no longer public.",
+            status_code=status_code,
+            detail=f"GitHub API error {status_code}: {response_text}",
+        )
+
+    raise GithubApiError(
+        "GitHub returned an unexpected API response. Please try again.",
+        status_code=status_code,
+        detail=f"GitHub API error {status_code}: {response_text}",
     )
 
 
@@ -56,9 +90,9 @@ def _get_repo_readme(owner_login, repo_name, header_candidates):
     url = f"{GITHUB_API_BASE_URL}/repos/{owner_login}/{repo_name}/readme"
     try:
         response = _request(url, header_candidates=header_candidates)
-    except Exception as error:
-        if "GitHub API error 404" in str(error):
+    except GithubResourceNotFoundError:
             return False, ""
+    except GithubApiError:
         raise
 
     payload = response.json()
@@ -76,9 +110,9 @@ def _get_repo_root_entries(owner_login, repo_name, header_candidates):
     url = f"{GITHUB_API_BASE_URL}/repos/{owner_login}/{repo_name}/contents"
     try:
         response = _request(url, header_candidates=header_candidates)
-    except Exception as error:
-        if "GitHub API error 404" in str(error):
+    except GithubResourceNotFoundError:
             return []
+    except GithubApiError:
         raise
 
     payload = response.json()
@@ -95,9 +129,9 @@ def _get_default_branch_head_sha(owner_login, repo_name, default_branch, header_
     url = f"{GITHUB_API_BASE_URL}/repos/{owner_login}/{repo_name}/branches/{default_branch}"
     try:
         payload = _request_json(url, header_candidates=header_candidates)
-    except Exception as error:
-        if "GitHub API error 404" in str(error):
+    except GithubResourceNotFoundError:
             return ""
+    except GithubApiError:
         raise
 
     commit = payload.get("commit") or {}
@@ -176,7 +210,7 @@ def get_github_repos(username=None):
     params = {"per_page": GITHUB_PAGE_SIZE, "sort": "updated"}
 
     if not username:
-        raise Exception("A public GitHub username is required.")
+        raise GithubApiError("A public GitHub username is required.")
 
     url = f"{GITHUB_API_BASE_URL}/users/{username}/repos"
     header_candidates = _get_header_candidates()
@@ -215,7 +249,7 @@ def get_portfolio_repo_facts(
     )
 
     if not repos:
-        raise Exception("No repositories matched the selected analysis scope.")
+        raise GithubApiError("No repositories matched the selected analysis scope.")
 
     header_candidates = _get_header_candidates()
     repo_facts = []
