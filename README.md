@@ -58,6 +58,14 @@ It is designed for two use cases:
 - Multi-repository PDF sample: [docs/reports/multirepo_analysis_with_portfoliosummary.pdf](docs/reports/multirepo_analysis_with_portfoliosummary.pdf)
 - Multi-repository Markdown sample: [docs/reports/multirepo_md_report.md](docs/reports/multirepo_md_report.md)
 
+## Decision Records
+
+Architectural decisions are documented in [docs/adr/README.md](docs/adr/README.md).
+
+## Architecture
+
+A high-level system walkthrough is documented in [docs/architecture.md](docs/architecture.md).
+
 ## What It Does
 
 For each selected repository, the app:
@@ -85,10 +93,13 @@ For portfolio-level analysis, the app also:
 - Limit analysis to the most recently updated `N` repositories
 - Cached GitHub fetches in the UI for faster repeated runs
 - Persistent SQLite-backed report caching with invalidation based on repository `updated_at` and default-branch commit SHA
+- Visible cache status messaging in the UI plus a `Force refresh analysis` option to bypass saved results
 - Repository scoring with visible category breakdowns
 - Repo-by-repo audit panels in the UI
 - Downloadable final report in Markdown or PDF
-- Browser-rendered PDF output for cleaner typography and more faithful Markdown layout
+- HTML/CSS PDF rendering via Playwright with a ReportLab fallback path
+- Graceful fallback and warning handling for GitHub, OAuth, OpenAI, and export failures
+- Parallelized GitHub repo-detail fetching with retry handling for transient API failures
 
 ## Scoring Model
 
@@ -113,7 +124,9 @@ These scores are intentionally transparent. They are meant to support the LLM an
 Github_Agent/
 |- app.py
 |- src/
+|  |- analysis_store.py
 |  |- config.py
+|  |- errors.py
 |  |- schemas.py
 |  |- github_client.py
 |  |- repo_checks.py
@@ -122,6 +135,11 @@ Github_Agent/
 |  |- report_builder.py
 |  `- exporters.py
 `- tests/
+   |- test_analysis_store.py
+   |- test_exporters.py
+   |- test_github_auth.py
+   |- test_github_client.py
+   |- test_openai_service.py
    |- test_repo_checks.py
    `- test_report_builder.py
 ```
@@ -140,6 +158,8 @@ Module responsibilities:
   End-to-end orchestration of data collection, cache lookup, checks, LLM analysis, and report generation
 - `src/analysis_store.py`
   Persistent SQLite-backed analysis cache and report serialization
+- `src/errors.py`
+  Shared typed application errors for GitHub, OAuth, OpenAI, and export failure handling
 - `src/exporters.py`
   Markdown and PDF export helpers
 
@@ -187,6 +207,8 @@ Equivalent environment variables are also supported:
 - `GITHUB_OAUTH_REDIRECT_URI`
 - `GITHUB_OAUTH_SCOPE`
 
+A tracked reference file for environment-variable names is available at [`.env.example`](.env.example).
+
 The token and key files are ignored by Git.
 
 OAuth scope default:
@@ -210,15 +232,17 @@ Then:
    - `Selected repositories`
    - `Portfolio slice`
 4. Run the analysis
-5. Review the scorecards and report
+5. Review the scorecards, report, and cache-status message
 6. Export the report if needed
+
+If you want to ignore a saved result and rerun everything, tick `Force refresh analysis`.
 
 ## Testing
 
 Run the current test suite with:
 
 ```powershell
-venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_builder tests.test_github_auth tests.test_github_client tests.test_exporters
+venv\Scripts\python.exe -m unittest tests.test_analysis_store tests.test_report_builder tests.test_exporters tests.test_repo_checks tests.test_github_auth tests.test_github_client tests.test_openai_service
 ```
 
 ## Example Analysis Flow
@@ -229,6 +253,7 @@ venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_bui
 - fetch the default-branch head commit SHA for cache freshness validation
 - run deterministic checks
 - reuse a saved report when repo freshness metadata still matches
+- show whether the result came from persistent cache or a fresh run
 - otherwise generate one repo audit and produce a deterministic repository-only report
 
 `Portfolio slice`
@@ -245,7 +270,7 @@ venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_bui
 
 - GitHub OAuth now requires you to configure your own GitHub OAuth app credentials and callback URL before browser-based sign-in will appear
 - The app analyzes public repositories only; private repository access is intentionally not requested in the current OAuth flow
-- Large portfolios can still take time because each repository gets its own model call and GitHub content fetches are still sequential
+- Large portfolios can still take time because each repository gets its own model call even though GitHub metadata fetching is now parallelized and retried
 - Persistent caching currently uses local SQLite storage, which is appropriate for local or single-instance hosting but not yet a shared distributed cache
 - The scoring model is rule-based and intentionally simple
 - PDF formatting is presentation-ready for normal reports, but the export layer can still be refined further for long portfolios and branded templates
@@ -254,9 +279,9 @@ venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_bui
 ## Roadmap
 
 - deployment setup for public usage
-- further performance and rate-limit resilience improvements
+- hosted persistence/secrets strategy for multi-instance deployment
 - optional repository Q&A / RAG mode for deeper codebase exploration
-- more robust automated tests around GitHub response parsing and failure modes
+- deeper export branding and report theming
 
 ## Security Notes
 
@@ -266,4 +291,4 @@ venv\Scripts\python.exe -m unittest tests.test_repo_checks tests.test_report_bui
 
 ## Status
 
-This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, persistent analysis caching, deterministic report generation, export flow, polished Streamlit interface, and GitHub OAuth sign-in support are implemented. The next major product milestone is deployment hardening and broader failure-mode coverage.
+This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, persistent analysis caching, deterministic report generation, export flow, polished Streamlit interface, public-only GitHub OAuth sign-in, cache-aware UX, retry-aware GitHub fetching, and broader failure-path coverage are implemented. The next major product milestone is deployment hardening.

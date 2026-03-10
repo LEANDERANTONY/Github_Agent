@@ -208,10 +208,10 @@ __marimo__/
 
 # keys
 openai_key.txt
-anthropic_key.txt
 github_oauth_client_id.txt
 github_oauth_client_secret.txt
 github_oauth_redirect_uri.txt
+github_token.txt
 .env
 
 # local notes and logs
@@ -220,3 +220,4 @@ streamlit.log
 streamlit.err.log
 analysis_cache.sqlite3
 analysis_cache.sqlite3-journal
+playwright-smoke.pdf

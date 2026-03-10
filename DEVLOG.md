@@ -115,10 +115,70 @@ Added the first durable caching layer for repeated analysis runs:
 - completed reports are now reused across browser sessions when the repository fingerprint has not changed
 - added regression tests for cache round-trips, cached-report reuse, and commit-SHA fetch behavior
 
+## March 10, 2026 - Cache-Aware UI
+
+Made the persistence layer visible in the product experience:
+
+- added cache status messaging so users can see whether a report was loaded from persistent cache or freshly generated
+- added a `Force refresh analysis` control to bypass cached results and rerun the audit
+- kept the saved-report path explicit instead of silently reusing prior results
+
+## March 10, 2026 - Failure Handling and Graceful Fallbacks
+
+Improved robustness across the most common failure cases:
+
+- added shared typed application errors in `src/errors.py`
+- surfaced clearer GitHub API, OAuth, OpenAI, and export error messages in the UI
+- added deterministic fallback behavior when portfolio synthesis or repo analysis fails
+- made export failures and inaccessible repositories fail more cleanly instead of producing vague errors
+
+## March 10, 2026 - GitHub Fetch Performance and Retry Handling
+
+Improved backend responsiveness and resilience for larger analyses:
+
+- parallelized repository detail fetching with low-concurrency workers
+- added retry handling for transient GitHub failures
+- respected GitHub retry hints such as rate-limit reset timing where available
+- preserved stable repository ordering despite parallel fetch execution
+
+## March 10, 2026 - Expanded Edge-Case Test Coverage
+
+Broadened automated coverage around non-happy-path behavior:
+
+- added OpenAI service tests for invalid JSON, wrapped request failures, and payload normalization
+- added exporter tests for dual-backend PDF failure handling
+- added OAuth tests for authenticated-user fetch failures
+- added report-builder tests for repo-analysis fallback warnings and deterministic output guarantees
+
+## March 10, 2026 - Docs and Sample Asset Refresh
+
+Updated repository-facing documentation to match the current product:
+
+- refreshed README screenshots to reflect the current UI, cache flow, and report exports
+- added current sample reports under `docs/reports/`
+- removed outdated screenshot assets that reflected older app states
+
+## March 10, 2026 - Architecture Decision Records
+
+Added explicit decision records for the app's major product and architecture choices:
+
+- documented the public-only GitHub OAuth scope decision
+- documented the move to deterministic final report formatting
+- documented the SQLite-backed persistent cache with repo freshness fingerprints
+- documented the Playwright-based HTML/CSS PDF rendering choice with ReportLab fallback
+
+## March 10, 2026 - Architecture and Config Docs
+
+Rounded out the repository documentation with operational references:
+
+- added `.env.example` to show the supported deployment-oriented environment variables
+- added `docs/architecture.md` with a high-level walkthrough of runtime flow, modules, cache design, auth model, and export pipeline
+- kept `DEVLOG.md` at the repository root so change history stays easy to discover alongside `README.md`
+
 ---
 
 ## Next Steps
 
 - deployment setup for public usage
-- further performance and rate-limit resilience improvements
-- broader tests around GitHub parsing and model failure handling
+- final deployment-oriented configuration and secrets hardening
+- decide whether SQLite remains sufficient for hosted single-instance use or needs to be replaced later
