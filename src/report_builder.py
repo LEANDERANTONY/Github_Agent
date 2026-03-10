@@ -114,7 +114,7 @@ def _format_markdown_report(report):
                 "No weaknesses generated.",
             )
         )
-        lines.extend(["", "## Top Priority Actions"])
+        lines.extend(["", "## Recommendations"])
         lines.extend(_format_priority_actions(repo_audit.recommendations))
         lines.extend(
             [
@@ -153,7 +153,7 @@ def _format_markdown_report(report):
 
     improvement_areas = report.portfolio_summary.improvement_areas or ["No improvement areas identified."]
     lines.extend("- {item}".format(item=item) for item in improvement_areas)
-    lines.extend(["", "### Top Actions"])
+    lines.extend(["", "### Recommendations"])
 
     lines.extend(
         _format_priority_actions(

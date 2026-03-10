@@ -150,6 +150,14 @@ def _inject_styles():
                 display: none;
             }
 
+            div[data-testid="stMarkdownContainer"]:has(.single-shell-marker),
+            div[data-testid="stMarkdownContainer"]:has(.portfolio-shell-marker),
+            div[data-testid="stMarkdownContainer"]:has(.portfolio-narrative-marker) {
+                display: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
             .single-shell-active {
                 background: #ffffff !important;
                 border: 1px solid var(--surface-line) !important;
@@ -182,6 +190,14 @@ def _inject_styles():
                 margin: 0.35rem 0 1.2rem 0 !important;
             }
 
+            .portfolio-shell-active > div[data-testid="stVerticalBlock"] {
+                gap: 0.3rem !important;
+            }
+
+            .portfolio-shell-active > div[data-testid="stVerticalBlock"] > div:first-child {
+                margin-top: -0.28rem !important;
+            }
+
             .portfolio-shell-active h3,
             .portfolio-shell-active h4,
             .portfolio-shell-active h5,
@@ -203,6 +219,10 @@ def _inject_styles():
                 padding: 1.15rem 1.2rem 1.25rem !important;
                 margin-top: 0.45rem !important;
                 box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22) !important;
+            }
+
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.portfolio-narrative-marker) {
+                margin-top: -0.18rem !important;
             }
 
             .portfolio-narrative-active,
