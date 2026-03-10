@@ -1,10 +1,14 @@
 import base64
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 
 from src.config import (
     GITHUB_API_BASE_URL,
+    GITHUB_FETCH_MAX_WORKERS,
     GITHUB_PAGE_SIZE,
+    GITHUB_RETRY_ATTEMPTS,
     REQUEST_TIMEOUT_SECONDS,
 )
 from src.errors import GithubApiError, GithubRateLimitError, GithubResourceNotFoundError
@@ -22,33 +26,73 @@ def _get_header_candidates():
     return [_base_headers()]
 
 
+def _retry_delay_seconds(response, attempt):
+    retry_after = response.headers.get("Retry-After")
+    if retry_after:
+        try:
+            return max(1, int(retry_after))
+        except ValueError:
+            return 1
+
+    if response.status_code in {500, 502, 503, 504}:
+        return min(2**attempt, 4)
+
+    if response.status_code == 403 and response.headers.get("X-RateLimit-Remaining") == "0":
+        reset_at = response.headers.get("X-RateLimit-Reset")
+        if reset_at:
+            try:
+                wait_seconds = int(reset_at) - int(time.time())
+                return max(1, min(wait_seconds, 30))
+            except ValueError:
+                return None
+
+    return None
+
+
 def _request(url, header_candidates, params=None):
     last_response = None
 
     for headers in header_candidates:
-        try:
-            response = requests.get(
-                url,
-                headers=headers,
-                params=params,
-                timeout=REQUEST_TIMEOUT_SECONDS,
-            )
-        except requests.Timeout as error:
-            raise GithubApiError(
-                "GitHub took too long to respond. Please try again.",
-                detail=str(error),
-            ) from error
-        except requests.RequestException as error:
-            raise GithubApiError(
-                "GitHub could not be reached right now. Please try again.",
-                detail=str(error),
-            ) from error
+        for attempt in range(GITHUB_RETRY_ATTEMPTS + 1):
+            try:
+                response = requests.get(
+                    url,
+                    headers=headers,
+                    params=params,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                )
+            except requests.Timeout as error:
+                if attempt < GITHUB_RETRY_ATTEMPTS:
+                    time.sleep(min(2**attempt, 4))
+                    continue
+                raise GithubApiError(
+                    "GitHub took too long to respond. Please try again.",
+                    detail=str(error),
+                ) from error
+            except requests.RequestException as error:
+                if attempt < GITHUB_RETRY_ATTEMPTS:
+                    time.sleep(min(2**attempt, 4))
+                    continue
+                raise GithubApiError(
+                    "GitHub could not be reached right now. Please try again.",
+                    detail=str(error),
+                ) from error
 
-        if response.status_code == 200:
-            return response
+            if response.status_code == 200:
+                return response
 
-        last_response = response
-        if response.status_code != 401:
+            last_response = response
+            if response.status_code == 401:
+                break
+
+            delay = _retry_delay_seconds(response, attempt)
+            if delay is not None and attempt < GITHUB_RETRY_ATTEMPTS:
+                time.sleep(delay)
+                continue
+
+            break
+
+        if last_response and last_response.status_code != 401:
             break
 
     status_code = last_response.status_code
@@ -252,9 +296,18 @@ def get_portfolio_repo_facts(
         raise GithubApiError("No repositories matched the selected analysis scope.")
 
     header_candidates = _get_header_candidates()
-    repo_facts = []
+    if len(repos) == 1:
+        return [_build_repo_facts(repos[0], header_candidates)]
 
-    for repo in repos:
-        repo_facts.append(_build_repo_facts(repo, header_candidates))
+    repo_facts = [None] * len(repos)
+    max_workers = min(GITHUB_FETCH_MAX_WORKERS, max(1, len(repos)))
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_map = {
+            executor.submit(_build_repo_facts, repo, header_candidates): index
+            for index, repo in enumerate(repos)
+        }
+        for future in as_completed(future_map):
+            repo_facts[future_map[future]] = future.result()
 
     return repo_facts
