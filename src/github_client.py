@@ -1,6 +1,7 @@
 import base64
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 
 import requests
 
@@ -45,6 +46,27 @@ def _retry_delay_seconds(response, attempt):
                 return max(1, min(wait_seconds, 30))
             except ValueError:
                 return None
+
+    return None
+
+
+def _format_rate_limit_reset(response):
+    retry_after = response.headers.get("Retry-After")
+    if retry_after:
+        try:
+            reset_time = datetime.now(timezone.utc).timestamp() + int(retry_after)
+            return datetime.fromtimestamp(reset_time, tz=timezone.utc).strftime("%b %d, %Y %I:%M %p UTC")
+        except ValueError:
+            return None
+
+    reset_at = response.headers.get("X-RateLimit-Reset")
+    if reset_at:
+        try:
+            return datetime.fromtimestamp(int(reset_at), tz=timezone.utc).strftime(
+                "%b %d, %Y %I:%M %p UTC"
+            )
+        except ValueError:
+            return None
 
     return None
 
@@ -101,10 +123,17 @@ def _request(url, header_candidates, params=None):
     if status_code == 403 and (
         rate_limit_remaining == "0" or "rate limit" in response_text.lower()
     ):
+        reset_at = _format_rate_limit_reset(last_response)
+        message = "GitHub rate limit reached. Wait a few minutes and try again."
+        if reset_at:
+            message = "GitHub rate limit reached. Try again after {reset_at}.".format(
+                reset_at=reset_at
+            )
         raise GithubRateLimitError(
-            "GitHub rate limit reached. Wait a few minutes and try again.",
+            message,
             status_code=status_code,
             detail=f"GitHub API error {status_code}: {response_text}",
+            reset_at=reset_at,
         )
 
     if status_code == 404:

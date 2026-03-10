@@ -12,7 +12,9 @@ class GithubApiError(AppError):
 
 
 class GithubRateLimitError(GithubApiError):
-    pass
+    def __init__(self, user_message, *, status_code=None, detail="", reset_at=None):
+        super().__init__(user_message, status_code=status_code, detail=detail)
+        self.reset_at = reset_at
 
 
 class GithubResourceNotFoundError(GithubApiError):

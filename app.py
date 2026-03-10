@@ -86,7 +86,7 @@ def _inject_styles():
                 text-transform: uppercase;
                 letter-spacing: 0.16em;
                 font-size: 0.72rem;
-                color: var(--accent);
+                color: var(--accent-strong);
                 font-weight: 700;
                 margin-bottom: 0.35rem;
             }
@@ -96,7 +96,7 @@ def _inject_styles():
             }
 
             .audit-copy {
-                color: #1d4ed8 !important;
+                color: var(--accent-strong) !important;
                 font-size: 1rem;
                 line-height: 1.6;
                 margin: 0;
@@ -509,6 +509,21 @@ def _inject_styles():
                 border: 1px solid rgba(96, 165, 250, 0.28) !important;
             }
 
+            div[data-testid="stAlertContentWarning"] {
+                background: transparent !important;
+                color: #fff6d8 !important;
+            }
+
+            div[data-testid="stAlert"] div[data-testid="stAlertContainer"]:has(div[data-testid="stAlertContentWarning"]) {
+                background: linear-gradient(135deg, rgba(104, 69, 10, 0.96), rgba(84, 58, 12, 0.94)) !important;
+                border: 1px solid rgba(245, 199, 94, 0.34) !important;
+                box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
+            }
+
+            div[data-testid="stAlert"] div[data-testid="stAlertContainer"]:has(div[data-testid="stAlertContentWarning"]) * {
+                color: #fff6d8 !important;
+            }
+
             @media (max-width: 900px) {
                 .block-container {
                     padding-top: 1.4rem;
@@ -703,16 +718,16 @@ def _render_cache_status(report):
     saved_at = _format_cache_timestamp(report.cache_saved_at)
 
     if report.cache_hit:
-        message = "Loaded from persistent cache."
+        message = "Analysis complete. Loaded from persistent cache."
         if saved_at:
             message += " Saved {saved_at}.".format(saved_at=saved_at)
         st.info(message)
         return
 
     if report.cache_status == "refreshed":
-        message = "Fresh analysis generated after bypassing the saved cache."
+        message = "Analysis complete. Fresh analysis generated after bypassing the saved cache."
     else:
-        message = "Fresh analysis generated and saved to persistent cache."
+        message = "Analysis complete. Fresh analysis generated and saved to persistent cache."
 
     if saved_at:
         message += " Cached {saved_at}.".format(saved_at=saved_at)
@@ -1113,6 +1128,10 @@ def main():
         st.session_state.repo_catalog = None
     if "report" not in st.session_state:
         st.session_state.report = None
+    if "analysis_status_message" not in st.session_state:
+        st.session_state.analysis_status_message = ""
+    if "analysis_status_kind" not in st.session_state:
+        st.session_state.analysis_status_kind = "success"
 
     _reset_catalog_if_target_changed(target)
 
@@ -1123,6 +1142,7 @@ def main():
                     effective_username,
                 )
                 st.session_state.report = None
+                st.session_state.analysis_status_message = ""
         except Exception as error:
             st.error(_error_message(error))
 
@@ -1211,20 +1231,49 @@ def main():
                         force_refresh=force_refresh,
                         progress_callback=update_progress,
                     )
-                    status_placeholder.success("Analysis complete.")
+                    report = st.session_state.report
+                    saved_at = _format_cache_timestamp(report.cache_saved_at)
+                    if report.cache_hit:
+                        message = "Analysis complete. Loaded from persistent cache."
+                        if saved_at:
+                            message += " Saved {saved_at}.".format(saved_at=saved_at)
+                        st.session_state.analysis_status_kind = "info"
+                    elif report.cache_status == "refreshed":
+                        message = "Analysis complete. Fresh analysis generated after bypassing the saved cache."
+                        if saved_at:
+                            message += " Cached {saved_at}.".format(saved_at=saved_at)
+                        st.session_state.analysis_status_kind = "success"
+                    else:
+                        message = "Analysis complete. Fresh analysis generated and saved to persistent cache."
+                        if saved_at:
+                            message += " Cached {saved_at}.".format(saved_at=saved_at)
+                        st.session_state.analysis_status_kind = "success"
+
+                    st.session_state.analysis_status_message = message
+                    status_placeholder.empty()
+                    progress_bar.empty()
                 except Exception as error:
                     message = _error_message(error)
+                    st.session_state.analysis_status_message = ""
                     if isinstance(error, GithubRateLimitError):
                         st.warning(message)
                     else:
                         st.error(message)
 
+    if st.session_state.get("analysis_status_message"):
+        if st.session_state.get("analysis_status_kind") == "info":
+            st.info(st.session_state.analysis_status_message)
+        else:
+            st.success(st.session_state.analysis_status_message)
+
     report = st.session_state.report
     if report:
-        st.markdown("---")
+        st.markdown(
+            '<div style="height:6px; border-radius:999px; background:#2563eb; margin:1rem 0 1.5rem 0;"></div>',
+            unsafe_allow_html=True,
+        )
         st.subheader(report.analysis_label or "Portfolio Analysis")
         st.caption("Analyzed repositories: {count}".format(count=report.repo_count))
-        _render_cache_status(report)
         _render_report_warnings(report)
 
         if report.repo_count == 1:
