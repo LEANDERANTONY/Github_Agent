@@ -25,23 +25,27 @@ def _inject_styles():
             """
             <style>
             :root {
-                --paper: #f5efe1;
-                --ink: #1f2933;
-                --muted: #52606d;
-                --card: rgba(255, 252, 247, 0.9);
-                --line: rgba(31, 41, 51, 0.12);
-                --accent: #0f766e;
+                --paper: #06080d;
+                --page-ink: #e7eefc;
+                --page-muted: #aab6cc;
+                --ink: #142033;
+                --muted: #5b6b83;
+                --card: #ffffff;
+                --line: rgba(255, 255, 255, 0.16);
+                --surface-line: rgba(20, 32, 51, 0.14);
+                --accent: #1d4ed8;
+                --accent-strong: #2563eb;
                 --success: #166534;
                 --warning: #b45309;
                 --danger: #b91c1c;
-                --shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+                --shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
             }
 
             .stApp {
                 background:
-                    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
-                    radial-gradient(circle at top right, rgba(194, 65, 12, 0.12), transparent 25%),
-                    linear-gradient(180deg, #f7f1e4 0%, #f2ebdc 100%);
+                    radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 26%),
+                    radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 24%),
+                    linear-gradient(180deg, #070a10 0%, #0b1220 48%, #05070c 100%);
             }
 
             .block-container {
@@ -61,17 +65,17 @@ def _inject_styles():
             [data-testid="stRadio"] label,
             [data-testid="stCheckbox"] label,
             [data-testid="stFileUploaderDropzoneInstructions"] {
-                color: var(--ink);
+                color: var(--page-ink);
             }
 
             h1, h2, h3, h4 {
-                color: var(--ink);
+                color: var(--page-ink);
                 letter-spacing: -0.02em;
             }
 
             .audit-hero {
-                background: linear-gradient(135deg, rgba(255,255,255,0.82), rgba(245,239,225,0.92));
-                border: 1px solid var(--line);
+                background: #ffffff !important;
+                border: 1px solid var(--surface-line);
                 border-radius: 24px;
                 padding: 1.4rem 1.5rem;
                 box-shadow: var(--shadow);
@@ -87,16 +91,20 @@ def _inject_styles():
                 margin-bottom: 0.35rem;
             }
 
+            .audit-hero h1 {
+                color: var(--ink);
+            }
+
             .audit-copy {
-                color: var(--muted);
+                color: #1d4ed8 !important;
                 font-size: 1rem;
                 line-height: 1.6;
                 margin: 0;
             }
 
             .repo-shell {
-                background: rgba(255,255,255,0.56);
-                border: 1px solid var(--line);
+                background: #ffffff !important;
+                border: 1px solid var(--surface-line);
                 border-radius: 18px;
                 padding: 1rem;
                 margin-bottom: 0.9rem;
@@ -135,8 +143,8 @@ def _inject_styles():
             }
 
             .metric-card {
-                background: var(--card);
-                border: 1px solid var(--line);
+                background: #ffffff !important;
+                border: 1px solid var(--surface-line);
                 border-radius: 18px;
                 padding: 1rem 1rem 0.9rem;
                 box-shadow: var(--shadow);
@@ -191,41 +199,105 @@ def _inject_styles():
             .pill-needs { background: rgba(185, 28, 28, 0.12); color: var(--danger); }
 
             .stExpander {
-                border: 1px solid var(--line) !important;
+                border: 1px solid var(--surface-line) !important;
                 border-radius: 18px !important;
-                background: rgba(255,255,255,0.55) !important;
+                background: #ffffff !important;
                 overflow: hidden;
             }
 
             .stExpander details summary p {
                 font-weight: 700;
-                color: var(--ink);
+                color: var(--ink) !important;
+            }
+
+            .stExpander,
+            .stExpander p,
+            .stExpander li,
+            .stExpander label,
+            .stExpander h1,
+            .stExpander h2,
+            .stExpander h3,
+            .stExpander h4,
+            .stExpander h5,
+            .stExpander h6,
+            .stExpander [data-testid="stMarkdownContainer"] p,
+            .stExpander [data-testid="stMarkdownContainer"] li,
+            .stExpander [data-testid="stWidgetLabel"] p,
+            .stExpander .stCaption {
+                color: var(--ink) !important;
+            }
+
+            .stExpander .metric-note,
+            .stExpander .repo-meta,
+            .stExpander .stCaption,
+            .stExpander [data-testid="stMarkdownContainer"] p:has(code) {
+                color: var(--muted) !important;
             }
 
             .stTextInput input,
             .stTextArea textarea,
             div[data-baseweb="input"] input,
-            div[data-baseweb="base-input"] input,
-            div[data-baseweb="select"] > div,
-            div[data-baseweb="select"] input {
-                background: rgba(255, 255, 255, 0.95) !important;
+            div[data-baseweb="base-input"] input {
+                background: #ffffff !important;
                 color: var(--ink) !important;
+                border-color: rgba(20, 32, 51, 0.14) !important;
             }
 
             .stTextInput input::placeholder,
             .stTextArea textarea::placeholder,
             div[data-baseweb="input"] input::placeholder,
-            div[data-baseweb="base-input"] input::placeholder,
-            div[data-baseweb="select"] input::placeholder {
+            div[data-baseweb="base-input"] input::placeholder {
                 color: var(--muted) !important;
                 opacity: 1 !important;
+            }
+
+            .stTextInput input:focus,
+            .stTextArea textarea:focus,
+            div[data-baseweb="input"] input:focus,
+            div[data-baseweb="base-input"] input:focus {
+                background: #ffffff !important;
+                color: var(--ink) !important;
+                border-color: rgba(20, 32, 51, 0.14) !important;
+                box-shadow: none !important;
+            }
+
+            div[data-baseweb="select"] > div,
+            div[data-baseweb="select"] input {
+                background: #ffffff !important;
+                color: var(--ink) !important;
             }
 
             div[data-baseweb="select"] svg,
             div[data-baseweb="input"] svg,
             div[data-baseweb="base-input"] svg {
+                fill: #f8fafc !important;
+            }
+
+            div[data-baseweb="select"] svg {
                 fill: var(--ink) !important;
             }
+
+            .stRadio input[type="radio"] {
+                accent-color: var(--accent-strong) !important;
+            }
+
+            .stCheckbox input[type="checkbox"] {
+                accent-color: var(--accent-strong) !important;
+            }
+
+            [data-testid="stRadio"] input[type="radio"] {
+                accent-color: var(--accent-strong) !important;
+            }
+
+            [data-testid="stCheckbox"] input[type="checkbox"] {
+                accent-color: var(--accent-strong) !important;
+            }
+
+            input[type="radio"],
+            input[type="checkbox"] {
+                accent-color: var(--accent-strong) !important;
+            }
+
 
             div[role="listbox"],
             div[role="option"] {
@@ -241,9 +313,9 @@ def _inject_styles():
             .stButton > button,
             .stDownloadButton > button,
             .stFormSubmitButton > button {
-                background: #1f2937 !important;
+                background: var(--accent-strong) !important;
                 color: #f8fafc !important;
-                border: 1px solid #1f2937 !important;
+                border: 1px solid var(--accent-strong) !important;
             }
 
             .oauth-link {
@@ -253,16 +325,16 @@ def _inject_styles():
                 min-height: 2.5rem;
                 padding: 0.5rem 0.95rem;
                 border-radius: 0.5rem;
-                background: #1f2937;
+                background: var(--accent-strong);
                 color: #f8fafc !important;
                 text-decoration: none !important;
-                border: 1px solid #1f2937;
+                border: 1px solid var(--accent-strong);
                 font-weight: 600;
             }
 
             .oauth-link:hover {
-                background: #111827;
-                border-color: #111827;
+                background: #1d4ed8;
+                border-color: #1d4ed8;
                 color: #f8fafc !important;
             }
 
@@ -275,9 +347,53 @@ def _inject_styles():
             .stButton > button:hover,
             .stDownloadButton > button:hover,
             .stFormSubmitButton > button:hover {
-                background: #111827 !important;
+                background: #1d4ed8 !important;
                 color: #f8fafc !important;
-                border-color: #111827 !important;
+                border-color: #1d4ed8 !important;
+            }
+
+            div[data-testid="stAlert"] {
+                border-radius: 16px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
+            }
+
+            div[data-testid="stAlert"][kind="success"] {
+                background: rgba(15, 43, 82, 0.95) !important;
+                border-color: rgba(96, 165, 250, 0.28) !important;
+            }
+
+            div[data-testid="stAlert"][kind="success"] * {
+                color: #dbeafe !important;
+            }
+
+            div[data-testid="stAlertContentSuccess"] {
+                background: transparent !important;
+                color: #dbeafe !important;
+            }
+
+            div[data-testid="stAlert"] div[data-testid="stAlertContainer"]:has(div[data-testid="stAlertContentSuccess"]) {
+                background: rgba(15, 43, 82, 0.95) !important;
+                border: 1px solid rgba(96, 165, 250, 0.28) !important;
+            }
+
+            div[data-testid="stAlert"][kind="info"] {
+                background: rgba(15, 23, 42, 0.78) !important;
+                border-color: rgba(96, 165, 250, 0.28) !important;
+            }
+
+            div[data-testid="stAlert"][kind="info"] * {
+                color: #dbeafe !important;
+            }
+
+            div[data-testid="stAlertContentInfo"] {
+                background: transparent !important;
+                color: #dbeafe !important;
+            }
+
+            div[data-testid="stAlert"] div[data-testid="stAlertContainer"]:has(div[data-testid="stAlertContentInfo"]) {
+                background: rgba(15, 43, 82, 0.95) !important;
+                border: 1px solid rgba(96, 165, 250, 0.28) !important;
             }
 
             @media (max-width: 900px) {
