@@ -110,7 +110,8 @@ def _inject_styles():
                 border: 1px solid var(--surface-line);
                 border-radius: 18px;
                 padding: 1rem;
-                margin-bottom: 0.9rem;
+                margin-top: -0.3rem;
+                margin-bottom: 0.72rem;
                 box-shadow: var(--shadow);
             }
 
@@ -154,7 +155,7 @@ def _inject_styles():
                 border: 1px solid var(--surface-line) !important;
                 border-radius: 24px !important;
                 box-shadow: var(--shadow) !important;
-                padding: 0.95rem 0.95rem 1.1rem 0.95rem !important;
+                padding: 0.12rem 0.95rem 1.02rem 0.95rem !important;
                 margin: 0.35rem 0 1.2rem 0 !important;
             }
 
@@ -166,6 +167,65 @@ def _inject_styles():
             .single-shell-active label,
             .single-shell-active [data-testid="stMarkdownContainer"] {
                 color: var(--ink) !important;
+            }
+
+            .portfolio-shell-marker {
+                display: none;
+            }
+
+            .portfolio-shell-active {
+                background: #ffffff !important;
+                border: 1px solid var(--surface-line) !important;
+                border-radius: 24px !important;
+                box-shadow: var(--shadow) !important;
+                padding: 0.12rem 0.95rem 1.02rem 0.95rem !important;
+                margin: 0.35rem 0 1.2rem 0 !important;
+            }
+
+            .portfolio-shell-active h3,
+            .portfolio-shell-active h4,
+            .portfolio-shell-active h5,
+            .portfolio-shell-active p,
+            .portfolio-shell-active li,
+            .portfolio-shell-active label,
+            .portfolio-shell-active [data-testid="stMarkdownContainer"] {
+                color: var(--ink) !important;
+            }
+
+            .portfolio-narrative-marker {
+                display: none;
+            }
+
+            .portfolio-narrative-active {
+                background: linear-gradient(180deg, rgba(5, 12, 24, 0.98), rgba(9, 20, 38, 0.98)) !important;
+                border: 1px solid rgba(96, 165, 250, 0.16) !important;
+                border-radius: 22px !important;
+                padding: 1.15rem 1.2rem 1.25rem !important;
+                margin-top: 0.45rem !important;
+                box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22) !important;
+            }
+
+            .portfolio-narrative-active,
+            .portfolio-narrative-active * {
+                color: #eef4ff !important;
+            }
+
+            .portfolio-narrative-active h3,
+            .portfolio-narrative-active h4,
+            .portfolio-narrative-active h5 {
+                color: #f8fbff !important;
+            }
+
+            .portfolio-narrative-active p,
+            .portfolio-narrative-active li {
+                color: #eef4ff !important;
+                line-height: 1.65;
+            }
+
+            .portfolio-narrative-divider {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(96, 165, 250, 0.14);
             }
 
             .repo-narrative {
@@ -823,6 +883,39 @@ def _render_single_repo_narrative(repo_audit, repo_check):
     st.markdown(narrative_html, unsafe_allow_html=True)
 
 
+def _render_portfolio_narrative(report):
+    with st.container(border=True):
+        st.markdown(
+            '<div id="portfolio-narrative-marker" class="portfolio-narrative-marker"></div>',
+            unsafe_allow_html=True,
+        )
+        _activate_portfolio_narrative()
+
+        st.markdown("### Portfolio Summary")
+        st.write(report.portfolio_summary.summary or "No portfolio summary generated.")
+        st.markdown('<div class="portfolio-narrative-divider"></div>', unsafe_allow_html=True)
+
+        panel_col1, panel_col2, panel_col3 = st.columns(3)
+        with panel_col1:
+            _render_bullet_panel(
+                "Strongest Repositories",
+                report.portfolio_summary.strongest_repos,
+                "No strongest repositories identified.",
+            )
+        with panel_col2:
+            _render_bullet_panel(
+                "Improvement Areas",
+                report.portfolio_summary.improvement_areas,
+                "No improvement areas identified.",
+            )
+        with panel_col3:
+            _render_bullet_panel(
+                "Recommendations",
+                report.portfolio_summary.top_actions,
+                "No top actions identified.",
+            )
+
+
 def _activate_single_report_shell():
     components.html(
         """
@@ -832,6 +925,40 @@ def _activate_single_report_shell():
             const wrapper = marker.closest('div[data-testid="stVerticalBlockBorderWrapper"]');
             if (wrapper) {
                 wrapper.classList.add("single-shell-active");
+            }
+        }
+        </script>
+        """,
+        height=0,
+    )
+
+
+def _activate_portfolio_shell():
+    components.html(
+        """
+        <script>
+        const marker = window.parent.document.getElementById("portfolio-shell-marker");
+        if (marker) {
+            const wrapper = marker.closest('div[data-testid="stVerticalBlockBorderWrapper"]');
+            if (wrapper) {
+                wrapper.classList.add("portfolio-shell-active");
+            }
+        }
+        </script>
+        """,
+        height=0,
+    )
+
+
+def _activate_portfolio_narrative():
+    components.html(
+        """
+        <script>
+        const marker = window.parent.document.getElementById("portfolio-narrative-marker");
+        if (marker) {
+            const wrapper = marker.closest('div[data-testid="stVerticalBlockBorderWrapper"]');
+            if (wrapper) {
+                wrapper.classList.add("portfolio-narrative-active");
             }
         }
         </script>
@@ -1088,52 +1215,34 @@ def _render_single_repo_report(report):
 
 
 def _render_portfolio_report(report):
-    hero_col1, hero_col2, hero_col3 = st.columns([1.05, 1.15, 1.15])
-    with hero_col1:
-        _render_metric_card(
-            "Portfolio Score",
-            "{score}/100".format(score=report.portfolio_score.overall),
-            "Averages deterministic repo scores across the selected analysis scope.",
-            report.portfolio_score.label or "Not rated.",
-        )
-    with hero_col2:
-        _render_metric_card(
-            "Repositories Reviewed",
-            str(report.repo_count),
-            "Scope-aware count after filters, selection rules, and fork exclusions.",
-        )
-    with hero_col3:
-        strongest_count = len(report.portfolio_summary.strongest_repos or [])
-        _render_metric_card(
-            "Standout Repos",
-            str(strongest_count),
-            "Repositories the model highlighted as the strongest signals in the portfolio.",
-        )
+    with st.container(border=True):
+        st.markdown('<div id="portfolio-shell-marker" class="portfolio-shell-marker"></div>', unsafe_allow_html=True)
+        _activate_portfolio_shell()
 
-    _render_score_breakdown(report.portfolio_score)
+        hero_col1, hero_col2, hero_col3 = st.columns([1.05, 1.15, 1.15])
+        with hero_col1:
+            _render_metric_card(
+                "Portfolio Score",
+                "{score}/100".format(score=report.portfolio_score.overall),
+                "Averages deterministic repo scores across the selected analysis scope.",
+                report.portfolio_score.label or "Not rated.",
+            )
+        with hero_col2:
+            _render_metric_card(
+                "Repositories Reviewed",
+                str(report.repo_count),
+                "Scope-aware count after filters, selection rules, and fork exclusions.",
+            )
+        with hero_col3:
+            strongest_count = len(report.portfolio_summary.strongest_repos or [])
+            _render_metric_card(
+                "Standout Repos",
+                str(strongest_count),
+                "Repositories the model highlighted as the strongest signals in the portfolio.",
+            )
 
-    st.markdown("### Portfolio Summary")
-    st.write(report.portfolio_summary.summary or "No portfolio summary generated.")
-
-    panel_col1, panel_col2, panel_col3 = st.columns(3)
-    with panel_col1:
-        _render_bullet_panel(
-            "Strongest Repositories",
-            report.portfolio_summary.strongest_repos,
-            "No strongest repositories identified.",
-        )
-    with panel_col2:
-        _render_bullet_panel(
-            "Improvement Areas",
-            report.portfolio_summary.improvement_areas,
-            "No improvement areas identified.",
-        )
-    with panel_col3:
-        _render_bullet_panel(
-            "Recommendations",
-            report.portfolio_summary.top_actions,
-            "No top actions identified.",
-        )
+        _render_score_breakdown(report.portfolio_score)
+        _render_portfolio_narrative(report)
 
     st.markdown("### Repository Audits")
     for repo_audit, repo_check in zip(report.repo_audits, report.repo_checks):
