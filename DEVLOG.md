@@ -181,4 +181,7 @@ Rounded out the repository documentation with operational references:
 
 - deployment setup for public usage
 - final deployment-oriented configuration and secrets hardening
+- update the GitHub OAuth callback URL and verify browser sign-in on the deployed app
+- validate end-to-end hosted flows for single-repo, multi-repo, cache hit, force refresh, and export behavior
 - decide whether SQLite remains sufficient for hosted single-instance use or needs to be replaced later
+- future product upgrade path: optional repository RAG / Q&A mode for deeper codebase exploration
