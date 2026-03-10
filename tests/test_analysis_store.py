@@ -77,6 +77,9 @@ class AnalysisStoreTestCase(unittest.TestCase):
             self.assertEqual("demo", loaded_report.repo_audits[0].repo_name)
             self.assertEqual("abc123", loaded_report.repo_facts[0].default_branch_head_sha)
             self.assertEqual("# GitHub Repository Audit", loaded_report.feedback_markdown)
+            self.assertTrue(loaded_report.cache_hit)
+            self.assertEqual("loaded", loaded_report.cache_status)
+            self.assertTrue(loaded_report.cache_saved_at)
 
             stale_report = load_cached_report(
                 analysis_key=analysis_key,

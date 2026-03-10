@@ -141,6 +141,9 @@ def _report_from_payload(payload):
         repo_count=payload["repo_count"],
         feedback_markdown=payload.get("feedback_markdown", ""),
         analysis_label=payload.get("analysis_label", ""),
+        cache_hit=bool(payload.get("cache_hit", False)),
+        cache_status=payload.get("cache_status", ""),
+        cache_saved_at=payload.get("cache_saved_at", ""),
         repo_facts=[_repo_facts_from_payload(item) for item in payload.get("repo_facts", [])],
         repo_checks=[_repo_check_from_payload(item) for item in payload.get("repo_checks", [])],
         repo_audits=[_repo_audit_from_payload(item) for item in payload.get("repo_audits", [])],
@@ -155,7 +158,7 @@ def load_cached_report(analysis_key, freshness_signature, db_path=None):
     with _connect(db_path) as connection:
         row = connection.execute(
             """
-            SELECT report_json
+            SELECT report_json, updated_at
             FROM analysis_cache
             WHERE analysis_key = ?
               AND freshness_signature = ?
@@ -168,7 +171,11 @@ def load_cached_report(analysis_key, freshness_signature, db_path=None):
         return None
 
     payload = json.loads(row["report_json"])
-    return _report_from_payload(payload)
+    report = _report_from_payload(payload)
+    report.cache_hit = True
+    report.cache_status = "loaded"
+    report.cache_saved_at = row["updated_at"]
+    return report
 
 
 def save_cached_report(analysis_key, github_username, freshness_signature, report, db_path=None):
@@ -207,3 +214,5 @@ def save_cached_report(analysis_key, github_username, freshness_signature, repor
             ),
         )
         connection.commit()
+
+    return timestamp

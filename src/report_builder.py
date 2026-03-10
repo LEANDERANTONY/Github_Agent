@@ -248,6 +248,7 @@ def build_portfolio_feedback(
     max_repos=None,
     skip_forks=False,
     repo_facts=None,
+    force_refresh=False,
     progress_callback=None,
 ):
     normalized_username = (github_username or "").strip()
@@ -267,10 +268,11 @@ def build_portfolio_feedback(
         skip_forks=skip_forks,
     )
     freshness_signature = build_freshness_signature(repo_facts)
-    cached_report = load_cached_report(analysis_key, freshness_signature)
-    if cached_report:
-        _update_progress(progress_callback, "Loaded saved analysis from persistent cache.", 100)
-        return cached_report
+    if not force_refresh:
+        cached_report = load_cached_report(analysis_key, freshness_signature)
+        if cached_report:
+            _update_progress(progress_callback, "Loaded saved analysis from persistent cache.", 100)
+            return cached_report
 
     _update_progress(progress_callback, "Running deterministic checks...", 30)
     repo_checks = [run_repo_checks(repo_fact) for repo_fact in repo_facts]
@@ -306,11 +308,14 @@ def build_portfolio_feedback(
     )
     _update_progress(progress_callback, "Building final report...", 90)
     report.feedback_markdown = _format_markdown_report(report)
-    save_cached_report(
+    cache_saved_at = save_cached_report(
         analysis_key=analysis_key,
         github_username=normalized_username,
         freshness_signature=freshness_signature,
         report=report,
     )
+    report.cache_hit = False
+    report.cache_status = "refreshed" if force_refresh else "generated"
+    report.cache_saved_at = cache_saved_at
     _update_progress(progress_callback, "Analysis complete.", 100)
     return report

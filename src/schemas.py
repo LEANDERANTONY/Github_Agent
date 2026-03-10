@@ -68,6 +68,9 @@ class PortfolioReport:
     repo_count: int
     feedback_markdown: str
     analysis_label: str = ""
+    cache_hit: bool = False
+    cache_status: str = ""
+    cache_saved_at: str = ""
     repo_facts: List[RepoFacts] = field(default_factory=list)
     repo_checks: List[RepoCheckResult] = field(default_factory=list)
     repo_audits: List[RepoAudit] = field(default_factory=list)

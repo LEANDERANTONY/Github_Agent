@@ -170,6 +170,7 @@ class ReportBuilderTestCase(unittest.TestCase):
         mock_build_analysis_key.return_value = "analysis-key"
         mock_build_freshness_signature.return_value = "freshness-signature"
         mock_load_cached_report.return_value = None
+        mock_save_cached_report.return_value = "2026-03-10T12:00:00+00:00"
         mock_build_portfolio_score.return_value = ScoreSummary(
             overall=72,
             label="Strong",
@@ -186,6 +187,9 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertIn("- **Readable README**: Setup and usage are easy to follow.", report.feedback_markdown)
         self.assertIn("## Findings", report.feedback_markdown)
         self.assertIn("- No tests found.", report.feedback_markdown)
+        self.assertFalse(report.cache_hit)
+        self.assertEqual("generated", report.cache_status)
+        self.assertEqual("2026-03-10T12:00:00+00:00", report.cache_saved_at)
         mock_save_cached_report.assert_called_once()
 
     @patch("src.report_builder.build_portfolio_score")
@@ -253,6 +257,7 @@ class ReportBuilderTestCase(unittest.TestCase):
         mock_build_analysis_key.return_value = "analysis-key"
         mock_build_freshness_signature.return_value = "freshness-signature"
         mock_load_cached_report.return_value = None
+        mock_save_cached_report.return_value = "2026-03-10T12:00:00+00:00"
         mock_summarize_portfolio.return_value = PortfolioSummary(
             summary="Useful portfolio start.",
             strongest_repos=["demo-a"],
@@ -277,6 +282,8 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertIn("- **Readable README**: Setup and usage are easy to follow.", report.feedback_markdown)
         self.assertIn("1. **Add homepage**: Publish a simple public entry point.", report.feedback_markdown)
         self.assertIn("- No homepage set.", report.feedback_markdown)
+        self.assertFalse(report.cache_hit)
+        self.assertEqual("generated", report.cache_status)
         mock_save_cached_report.assert_called_once()
 
     @patch("src.report_builder.load_cached_report")
@@ -304,6 +311,9 @@ class ReportBuilderTestCase(unittest.TestCase):
             repo_count=1,
             feedback_markdown="# Cached",
             analysis_label="Selected Repository Analysis",
+            cache_hit=True,
+            cache_status="loaded",
+            cache_saved_at="2026-03-10T12:00:00+00:00",
             repo_facts=[repo_fact],
             repo_checks=[RepoCheckResult(repo_name="demo")],
             repo_audits=[RepoAudit(repo_name="demo")],
@@ -319,7 +329,71 @@ class ReportBuilderTestCase(unittest.TestCase):
         )
 
         self.assertEqual("# Cached", report.feedback_markdown)
+        self.assertTrue(report.cache_hit)
+        self.assertEqual("loaded", report.cache_status)
         mock_run_repo_checks.assert_not_called()
+
+    @patch("src.report_builder.save_cached_report")
+    @patch("src.report_builder.load_cached_report")
+    @patch("src.report_builder.build_freshness_signature")
+    @patch("src.report_builder.build_analysis_key")
+    @patch("src.report_builder.analyze_repo")
+    @patch("src.report_builder.run_repo_checks")
+    @patch("src.report_builder.build_portfolio_score")
+    def test_build_portfolio_feedback_force_refresh_bypasses_cache(
+        self,
+        mock_build_portfolio_score,
+        mock_run_repo_checks,
+        mock_analyze_repo,
+        mock_build_analysis_key,
+        mock_build_freshness_signature,
+        mock_load_cached_report,
+        mock_save_cached_report,
+    ):
+        repo_fact = RepoFacts(name="demo", description="Demo repo", languages={"Python": 100})
+        repo_check = RepoCheckResult(
+            repo_name="demo",
+            findings=["No tests found."],
+            score=ScoreSummary(overall=72, label="Strong", category_scores={"Engineering": 70}),
+        )
+        repo_audit = RepoAudit(
+            repo_name="demo",
+            summary="A demo repository.",
+            what_it_does="Shows the full report format.",
+            key_technologies=["Python"],
+            strengths=["Readable README: Setup and usage are easy to follow."],
+            weaknesses=["No tests: There is no automated validation yet."],
+            recommendations=["Add tests: Introduce smoke tests for the core workflow."],
+            showcase_value="Medium",
+            recruiter_signal="Needs polish",
+        )
+
+        mock_run_repo_checks.return_value = repo_check
+        mock_analyze_repo.return_value = repo_audit
+        mock_build_analysis_key.return_value = "analysis-key"
+        mock_build_freshness_signature.return_value = "freshness-signature"
+        mock_load_cached_report.return_value = PortfolioReport(
+            github_username="demo",
+            repo_count=1,
+            feedback_markdown="# Cached",
+        )
+        mock_save_cached_report.return_value = "2026-03-10T12:00:00+00:00"
+        mock_build_portfolio_score.return_value = ScoreSummary(
+            overall=72,
+            label="Strong",
+            category_scores={"Engineering": 70},
+        )
+
+        report = build_portfolio_feedback(
+            github_username="demo",
+            repo_facts=[repo_fact],
+            force_refresh=True,
+        )
+
+        self.assertNotEqual("# Cached", report.feedback_markdown)
+        self.assertFalse(report.cache_hit)
+        self.assertEqual("refreshed", report.cache_status)
+        mock_run_repo_checks.assert_called_once()
 
 
 if __name__ == "__main__":

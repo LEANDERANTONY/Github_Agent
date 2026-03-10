@@ -1,5 +1,6 @@
 import html
 import textwrap
+from datetime import datetime
 
 import streamlit as st
 
@@ -370,6 +371,36 @@ def _render_repo_header(title, subtitle):
         ).strip(),
         unsafe_allow_html=True,
     )
+
+
+def _format_cache_timestamp(timestamp):
+    if not timestamp:
+        return ""
+    try:
+        normalized = timestamp.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized).strftime("%b %d, %Y %I:%M %p UTC")
+    except ValueError:
+        return timestamp
+
+
+def _render_cache_status(report):
+    saved_at = _format_cache_timestamp(report.cache_saved_at)
+
+    if report.cache_hit:
+        message = "Loaded from persistent cache."
+        if saved_at:
+            message += " Saved {saved_at}.".format(saved_at=saved_at)
+        st.info(message)
+        return
+
+    if report.cache_status == "refreshed":
+        message = "Fresh analysis generated after bypassing the saved cache."
+    else:
+        message = "Fresh analysis generated and saved to persistent cache."
+
+    if saved_at:
+        message += " Cached {saved_at}.".format(saved_at=saved_at)
+    st.success(message)
 
 
 def _normalize_username(username):
@@ -838,6 +869,12 @@ def main():
             )
             st.caption("Repositories are taken from the most recently updated list.")
 
+        force_refresh = st.checkbox(
+            "Force refresh analysis (tick to generate a fresh repo analysis and skip any cached saves)",
+            value=False,
+            help="Ignore any saved report for this exact repo selection and regenerate a new one from GitHub + OpenAI.",
+        )
+
         if st.button("Run Analysis"):
             if scope == "Selected repositories" and not selected_repo_names:
                 st.error("Choose at least one repository to analyze.")
@@ -865,6 +902,7 @@ def main():
                         max_repos=max_repos if scope == "Portfolio slice" else None,
                         skip_forks=skip_forks if scope == "Portfolio slice" else False,
                         repo_facts=repo_facts,
+                        force_refresh=force_refresh,
                         progress_callback=update_progress,
                     )
                     status_placeholder.success("Analysis complete.")
@@ -876,6 +914,7 @@ def main():
         st.markdown("---")
         st.subheader(report.analysis_label or "Portfolio Analysis")
         st.caption("Analyzed repositories: {count}".format(count=report.repo_count))
+        _render_cache_status(report)
 
         if report.repo_count == 1:
             _render_single_repo_report(report)
