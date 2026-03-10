@@ -28,7 +28,7 @@ It is designed for two use cases:
 
 ![GitHub OAuth sign-in](docs/screenshots/github_OAuth_signin.jpg)
 
-Short OAuth sign-in demo: [docs/recordings/github_OAuth_login.mp4](docs/recordings/github_OAuth_login.mp4)
+Short OAuth sign-in demo: [docs/recordings/oauth_login_demo.mp4](docs/recordings/oauth_login_demo.mp4)
 
 ### Portfolio Slice Selection
 
@@ -62,9 +62,9 @@ Short OAuth sign-in demo: [docs/recordings/github_OAuth_login.mp4](docs/recordin
 
 ## Demo Recordings
 
-- GitHub OAuth login demo: [docs/recordings/github_OAuth_login.mp4](docs/recordings/github_OAuth_login.mp4)
-- Single-repository analysis and report download demo: [docs/recordings/singlerepo_analysis&reportdownload_demo.mp4](docs/recordings/singlerepo_analysis&reportdownload_demo.mp4)
-- Full workflow demo (Google Drive, view-only): [app_workflow.mp4](https://drive.google.com/file/d/1ltMC_iUdZvX8DdhEx0Mlu6x72-OygTNV/view?usp=drive_link)
+- GitHub OAuth login demo: [docs/recordings/oauth_login_demo.mp4](docs/recordings/oauth_login_demo.mp4)
+- Single-repository analysis and report download demo: [docs/recordings/single_repo_analysis_demo.mp4](docs/recordings/single_repo_analysis_demo.mp4)
+- Full workflow demo (Google Drive, view-only): [full_app_workflow.mp4](https://drive.google.com/file/d/1ltMC_iUdZvX8DdhEx0Mlu6x72-OygTNV/view?usp=drive_link)
 
 ## Decision Records
 
