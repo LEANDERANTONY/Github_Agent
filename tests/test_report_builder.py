@@ -40,7 +40,7 @@ class ReportBuilderTestCase(unittest.TestCase):
         self.assertIn("**Repository**\ndemo", markdown)
         self.assertIn("## Repository Score", markdown)
         self.assertIn("## Repository Summary", markdown)
-        self.assertIn("## Top Priority Actions", markdown)
+        self.assertIn("## Recommendations", markdown)
         self.assertIn("## Findings", markdown)
         self.assertIn("- **Readable README**: Setup and usage are easy to follow.", markdown)
         self.assertIn("- **No tests**: There is no automated validation yet.", markdown)
@@ -323,7 +323,7 @@ class ReportBuilderTestCase(unittest.TestCase):
         )
 
         self.assertIn("# GitHub Portfolio Audit", report.feedback_markdown)
-        self.assertIn("### Top Actions", report.feedback_markdown)
+        self.assertIn("### Recommendations", report.feedback_markdown)
         self.assertIn("1. **Add tests**: Improve confidence in the codebase.", report.feedback_markdown)
         self.assertIn("### demo-a", report.feedback_markdown)
         self.assertIn("- **Readable README**: Setup and usage are easy to follow.", report.feedback_markdown)
