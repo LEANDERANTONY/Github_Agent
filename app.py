@@ -1,4 +1,5 @@
 import html
+import hashlib
 import textwrap
 from datetime import datetime
 
@@ -1382,22 +1383,33 @@ def _render_downloads(report, github_username):
         ],
     )
 
+    report_key = hashlib.sha256((report.feedback_markdown or "").encode("utf-8")).hexdigest()
+    if st.session_state.get("prepared_pdf_key") != report_key:
+        st.session_state.prepared_pdf_key = ""
+        st.session_state.prepared_pdf_bytes = b""
+
     try:
         if file_format == "Markdown (.md)":
             file_data = generate_markdown(report.feedback_markdown)
             mime_type = "text/markdown"
             file_ext = "md"
         else:
-            file_data = generate_pdf(report.feedback_markdown)
             mime_type = "application/pdf"
             file_ext = "pdf"
+            if st.button("Prepare PDF Download"):
+                st.session_state.prepared_pdf_bytes = generate_pdf(report.feedback_markdown).getvalue()
+                st.session_state.prepared_pdf_key = report_key
+            if st.session_state.get("prepared_pdf_key") != report_key:
+                st.caption("Generate the PDF once, then download it.")
+                return
+            file_data = st.session_state.prepared_pdf_bytes
     except ExportError as error:
         st.error(_error_message(error))
         return
 
     st.download_button(
         label="Download Report as {label}".format(label=file_format.split()[0]),
-        data=file_data.getvalue(),
+        data=file_data.getvalue() if file_format == "Markdown (.md)" else file_data,
         file_name="{name}_portfolio_suggestions.{ext}".format(
             name=github_username or "my",
             ext=file_ext,
