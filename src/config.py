@@ -12,7 +12,6 @@ ANALYSIS_CACHE_DB_PATH = BASE_DIR / "analysis_cache.sqlite3"
 OPENAI_REPO_MODEL = os.getenv("OPENAI_REPO_MODEL", "gpt-5-mini")
 OPENAI_PORTFOLIO_MODEL = os.getenv("OPENAI_PORTFOLIO_MODEL", "gpt-5.4")
 OPENAI_FINAL_REPORT_MODEL = os.getenv("OPENAI_FINAL_REPORT_MODEL", "gpt-5.4")
-GITHUB_OAUTH_SCOPE = os.getenv("GITHUB_OAUTH_SCOPE", "read:user user:email")
 ANALYSIS_CACHE_VERSION = "2026-03-11-v2"
 
 GITHUB_API_BASE_URL = "https://api.github.com"
@@ -67,3 +66,7 @@ def load_github_oauth_redirect_uri(required=False):
     raise Exception(
         "Missing GitHub OAuth redirect URI. Set GITHUB_OAUTH_REDIRECT_URI or add github_oauth_redirect_uri.txt."
     )
+
+
+def load_github_oauth_scope():
+    return os.getenv("GITHUB_OAUTH_SCOPE", "read:user user:email")

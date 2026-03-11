@@ -98,6 +98,29 @@ class GithubAuthTestCase(unittest.TestCase):
         self.assertTrue(consume_oauth_state("state-123"))
         self.assertFalse(consume_oauth_state("state-123"))
 
+    def test_registered_oauth_state_can_use_custom_registry(self):
+        registry = {}
+
+        register_oauth_state("state-456", registry=registry)
+
+        self.assertIn("state-456", registry)
+        self.assertTrue(consume_oauth_state("state-456", registry=registry))
+        self.assertFalse(consume_oauth_state("state-456", registry=registry))
+
+    @patch("src.github_auth.load_github_oauth_scope", return_value="read:user user:email")
+    @patch("src.github_auth.load_github_oauth_client_id", return_value="client-123")
+    @patch("src.github_auth.load_github_oauth_redirect_uri", return_value="http://localhost:8501")
+    def test_build_authorize_url_uses_runtime_scope_loader(
+        self,
+        _mock_redirect_uri,
+        _mock_client_id,
+        _mock_scope,
+    ):
+        url = build_authorize_url("state-scope")
+        params = parse_qs(urlparse(url).query)
+
+        self.assertEqual(["read:user user:email"], params["scope"])
+
 
 if __name__ == "__main__":
     unittest.main()

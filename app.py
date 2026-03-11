@@ -5,6 +5,7 @@ from datetime import datetime
 
 import streamlit as st
 import streamlit.components.v1 as components
+import os
 
 from src.errors import AppError, ExportError, GithubRateLimitError
 from src.exporters import generate_markdown, generate_pdf
@@ -19,6 +20,22 @@ from src.github_auth import (
 )
 from src.github_client import get_github_repos, get_portfolio_repo_facts
 from src.report_builder import build_portfolio_feedback
+
+# If the app is running on Streamlit and the deploy secrets were set via
+# the Streamlit secrets manager, copy those keys into `os.environ` so the
+# existing config loaders (which use `os.getenv`) pick them up.
+try:
+    for _key in (
+        "GITHUB_OAUTH_CLIENT_ID",
+        "GITHUB_OAUTH_CLIENT_SECRET",
+        "GITHUB_OAUTH_REDIRECT_URI",
+        "GITHUB_OAUTH_SCOPE",
+    ):
+        if _key not in os.environ and _key in st.secrets:
+            os.environ[_key] = st.secrets[_key]
+except Exception:
+    # Don't let secrets loading break the app in non-Streamlit contexts.
+    pass
 
 
 def _inject_styles():
@@ -1038,6 +1055,7 @@ def _init_auth_state():
         "github_auth_login": "",
         "github_auth_error": "",
         "github_auth_redirect_url": "",
+        "github_oauth_states": {},
     }
     for key, value in auth_defaults.items():
         if key not in st.session_state:
@@ -1081,7 +1099,8 @@ def _handle_github_oauth_callback():
         _clear_query_params()
         return
 
-    if not code or not state or not consume_oauth_state(state):
+    state_registry = st.session_state.get("github_oauth_states", {})
+    if not code or not state or not consume_oauth_state(state, registry=state_registry):
         st.session_state.github_auth_error = "GitHub sign-in failed: invalid OAuth state."
         _clear_query_params()
         return
@@ -1122,7 +1141,7 @@ def _render_auth_panel():
         return
 
     oauth_state = generate_oauth_state()
-    register_oauth_state(oauth_state)
+    register_oauth_state(oauth_state, registry=st.session_state.github_oauth_states)
     authorize_url = build_authorize_url(oauth_state)
     _render_repo_header(
         "Connect GitHub",

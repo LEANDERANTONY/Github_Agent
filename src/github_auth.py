@@ -5,11 +5,11 @@ import requests
 
 from src.config import (
     GITHUB_API_BASE_URL,
-    GITHUB_OAUTH_SCOPE,
     REQUEST_TIMEOUT_SECONDS,
     load_github_oauth_client_id,
     load_github_oauth_client_secret,
     load_github_oauth_redirect_uri,
+    load_github_oauth_scope,
 )
 from src.errors import GithubOAuthError
 
@@ -32,25 +32,28 @@ def generate_oauth_state():
     return secrets.token_urlsafe(24)
 
 
-def _purge_expired_oauth_states(now=None):
+def _purge_expired_oauth_states(now=None, registry=None):
+    registry = _OAUTH_STATE_REGISTRY if registry is None else registry
     now = now or time.time()
     expired_states = [
         state
-        for state, created_at in _OAUTH_STATE_REGISTRY.items()
+        for state, created_at in registry.items()
         if now - created_at > OAUTH_STATE_TTL_SECONDS
     ]
     for state in expired_states:
-        _OAUTH_STATE_REGISTRY.pop(state, None)
+        registry.pop(state, None)
 
 
-def register_oauth_state(state):
-    _purge_expired_oauth_states()
-    _OAUTH_STATE_REGISTRY[state] = time.time()
+def register_oauth_state(state, registry=None):
+    registry = _OAUTH_STATE_REGISTRY if registry is None else registry
+    _purge_expired_oauth_states(registry=registry)
+    registry[state] = time.time()
 
 
-def consume_oauth_state(state):
-    _purge_expired_oauth_states()
-    created_at = _OAUTH_STATE_REGISTRY.pop(state, None)
+def consume_oauth_state(state, registry=None):
+    registry = _OAUTH_STATE_REGISTRY if registry is None else registry
+    _purge_expired_oauth_states(registry=registry)
+    created_at = registry.pop(state, None)
     return created_at is not None
 
 
@@ -58,7 +61,7 @@ def build_authorize_url(state):
     params = {
         "client_id": load_github_oauth_client_id(required=True),
         "redirect_uri": load_github_oauth_redirect_uri(required=True),
-        "scope": GITHUB_OAUTH_SCOPE,
+        "scope": load_github_oauth_scope(),
         "state": state,
     }
     return requests.Request("GET", GITHUB_OAUTH_AUTHORIZE_URL, params=params).prepare().url
