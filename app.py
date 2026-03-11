@@ -208,6 +208,8 @@ def _inject_styles():
             }
 
             .portfolio-shell-active > div[data-testid="stVerticalBlock"] {
+                background: #ffffff !important;
+                border-radius: inherit !important;
                 gap: 0.3rem !important;
             }
 
