@@ -1,4 +1,5 @@
 import html
+import json
 import textwrap
 from datetime import datetime
 
@@ -1126,8 +1127,9 @@ def _render_auth_panel():
         "Authorize the app to identify your GitHub account and analyze its public repositories.",
     )
     st.markdown(
-        '<a class="oauth-link" href="{url}" target="_top" rel="noopener noreferrer">Sign in with GitHub</a>'.format(
-            url=_escape(authorize_url)
+        '<a class="oauth-link" href="{url}" target="_top" rel="noopener noreferrer" onclick=\'window.top.location.href={js_url}; return false;\'>Sign in with GitHub</a>'.format(
+            url=_escape(authorize_url),
+            js_url=json.dumps(authorize_url),
         ),
         unsafe_allow_html=True,
     )
