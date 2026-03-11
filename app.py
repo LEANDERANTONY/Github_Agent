@@ -1364,7 +1364,7 @@ def main():
 
     with st.form("repo_catalog_form", clear_on_submit=False):
         github_username = st.text_input(
-            "Enter your GitHub username to analyze your profile instead of signing in",
+            "Enter a GitHub username to analyze a profile instead of signing in",
             placeholder="e.g. torvalds",
         )
         load_repositories = st.form_submit_button("Load Repositories")
@@ -1378,8 +1378,6 @@ def main():
                 login=auth_login
             )
         )
-    elif not _normalize_username(github_username):
-        st.caption("Enter a public GitHub username, or sign in to analyze your own public repositories.")
 
     if "repo_catalog_target" not in st.session_state:
         st.session_state.repo_catalog_target = target
