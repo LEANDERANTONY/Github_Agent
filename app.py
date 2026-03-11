@@ -1364,7 +1364,7 @@ def main():
 
     with st.form("repo_catalog_form", clear_on_submit=False):
         github_username = st.text_input(
-            "Enter your GitHub username to analyze profile",
+            "Enter your GitHub username to analyze your profile instead of signing in",
             placeholder="e.g. torvalds",
         )
         load_repositories = st.form_submit_button("Load Repositories")
