@@ -1136,7 +1136,7 @@ def _render_auth_panel():
             "OAuth sign-in is used for identity here. Only publicly visible repositories are analyzed."
         )
         st.caption(
-            "If sign-in opened in a new tab, you can continue here and close the previous tab."
+            "You can continue here and close the previous tab."
         )
         if st.button("Disconnect GitHub"):
             _disconnect_github_auth()
