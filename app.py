@@ -1135,12 +1135,12 @@ def _render_auth_panel():
         st.caption(
             "OAuth sign-in is used for identity here. Only publicly visible repositories are analyzed."
         )
-        st.caption(
-            "You can continue here and close the previous tab."
-        )
         if st.button("Disconnect GitHub"):
             _disconnect_github_auth()
             st.rerun()
+        st.caption(
+            "You can continue here, close the previous tab, and click Load Repositories to use your signed-in account."
+        )
         return
 
     oauth_state = generate_oauth_state()
