@@ -1126,7 +1126,7 @@ def _render_auth_panel():
         "Authorize the app to identify your GitHub account and analyze its public repositories.",
     )
     st.markdown(
-        '<a class="oauth-link" href="{url}" target="_self">Sign in with GitHub</a>'.format(
+        '<a class="oauth-link" href="{url}" target="_top" rel="noopener noreferrer">Sign in with GitHub</a>'.format(
             url=_escape(authorize_url)
         ),
         unsafe_allow_html=True,
