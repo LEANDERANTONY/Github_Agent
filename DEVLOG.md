@@ -186,6 +186,18 @@ Improved the last visible friction points in the local app flow and refreshed de
 - added focused demo recordings for GitHub OAuth sign-in and single-repository analysis/report download
 - kept the large full-workflow video out of git history and linked it from the README as an external Google Drive demo
 
+## March 11, 2026 - Hosted OAuth Flow and Download UX
+
+Hardened the hosted Streamlit experience around GitHub sign-in and report export:
+
+- bridged Streamlit secrets into runtime environment loading so hosted OAuth configuration is detected consistently
+- moved hosted GitHub OAuth to Streamlit's native link-button flow and aligned the sign-in button styling with the rest of the UI
+- changed hosted OAuth state validation to use a signed, self-validating state so callbacks work across new tabs and fresh hosted sessions
+- clarified the signed-in guidance so users know they can continue in the authenticated tab, close the previous tab, and click `Load Repositories`
+- simplified the public-username input copy and removed redundant helper text below the repository form
+- kept repository-audit expander headers visually stable after interaction in the multi-repo report view
+- changed PDF export so the expensive PDF generation starts only when the user clicks the download button instead of when they merely switch the format selector
+
 ---
 
 ## Next Steps

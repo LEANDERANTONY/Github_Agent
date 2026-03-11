@@ -236,7 +236,7 @@ streamlit run app.py
 Then:
 
 1. Enter a public GitHub username, or sign in with GitHub and leave the username blank to analyze your own public repositories
-2. Click `Load Repositories`
+2. If you use GitHub OAuth in the hosted Streamlit app, the sign-in flow opens in a new tab. After sign-in completes, continue in the signed-in tab and click `Load Repositories`.
 3. Choose one of:
    - `Single repository`
    - `Selected repositories`
@@ -284,7 +284,9 @@ Notes:
 
 - `GITHUB_OAUTH_REDIRECT_URI` must exactly match the deployed app URL configured in your GitHub OAuth app.
 - The app can run without OAuth if users only enter public usernames, but OAuth should be configured for the full public flow.
+- In the hosted Streamlit flow, GitHub OAuth opens in a new tab due to Streamlit's external-link behavior. After sign-in succeeds, use the signed-in tab and close the previous tab.
 - The higher-quality PDF path uses Playwright/Chromium. If the deployment runtime cannot use Chromium, the app falls back to the ReportLab PDF path instead of failing outright.
+- PDF export generation is deferred until the user clicks the download button, which avoids an unnecessary first-load rerender when selecting `PDF (.pdf)`.
 - Persistent caching currently uses local SQLite storage. That is acceptable for a single-instance deployment, but it is not yet a shared distributed cache.
 
 Hosted smoke-test checklist:
