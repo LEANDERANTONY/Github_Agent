@@ -572,6 +572,7 @@ def _inject_styles():
             }
 
             .stButton > button,
+            .stLinkButton > a,
             .stDownloadButton > button,
             .stFormSubmitButton > button {
                 background: var(--accent-strong) !important;
@@ -600,12 +601,14 @@ def _inject_styles():
             }
 
             .stButton > button *,
+            .stLinkButton > a *,
             .stDownloadButton > button *,
             .stFormSubmitButton > button * {
                 color: #f8fafc !important;
             }
 
             .stButton > button:hover,
+            .stLinkButton > a:hover,
             .stDownloadButton > button:hover,
             .stFormSubmitButton > button:hover {
                 background: #1d4ed8 !important;
