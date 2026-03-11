@@ -68,6 +68,10 @@ Short OAuth sign-in demo: [docs/recordings/oauth_login_demo.mp4](docs/recordings
 
 Architectural decisions are documented in [docs/adr/README.md](docs/adr/README.md).
 
+## Roadmap Document
+
+The longer-term product vision is outlined in [ROADMAP.md](ROADMAP.md).
+
 ## Architecture
 
 A high-level system walkthrough is documented in [docs/architecture.md](docs/architecture.md).
@@ -337,13 +341,6 @@ venv\Scripts\python.exe -m unittest tests.test_analysis_store tests.test_report_
 - The scoring model is rule-based and intentionally simple
 - PDF formatting is presentation-ready for normal reports, but the export layer can still be refined further for long portfolios and branded templates
 - The higher-quality PDF path depends on Playwright/Chromium being available in the runtime environment
-
-## Roadmap
-
-- hosted persistence/secrets strategy for multi-instance deployment
-- GitHub-side polish such as repo topics, homepage/demo link, and optional status badges
-- optional repository Q&A / RAG mode for deeper codebase exploration
-- deeper export branding and report theming
 
 ## Security Notes
 
