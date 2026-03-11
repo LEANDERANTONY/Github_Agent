@@ -213,6 +213,7 @@ github_oauth_client_secret.txt
 github_oauth_redirect_uri.txt
 github_token.txt
 .env
+.streamlit/secrets.toml
 
 # local notes and logs
 Github_Agent.txt

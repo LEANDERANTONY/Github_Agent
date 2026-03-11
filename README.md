@@ -217,6 +217,8 @@ Equivalent environment variables are also supported:
 
 A tracked reference file for environment-variable names is available at [`.env.example`](.env.example).
 
+For Streamlit-style secrets, a tracked template is also available at [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example).
+
 The token and key files are ignored by Git.
 
 OAuth scope default:
@@ -244,6 +246,57 @@ Then:
 6. Export the report if needed
 
 If you want to ignore a saved result and rerun everything, tick `Force refresh analysis`.
+
+## Deployment
+
+### Streamlit Community Cloud
+
+Recommended first hosting target for this app:
+
+- the app is already built on Streamlit
+- deployment is simple
+- it is a good fit for a public portfolio demo
+
+Deployment checklist:
+
+1. Push the latest `main` branch to GitHub.
+2. In Streamlit Community Cloud, create a new app from this repository.
+3. Use `app.py` as the entrypoint.
+4. Add the required secrets in the Streamlit Cloud secrets manager.
+5. Update the GitHub OAuth app homepage and callback URL to the deployed app URL.
+6. Deploy and run a full smoke test.
+
+Recommended secrets for Streamlit Cloud:
+
+```toml
+OPENAI_API_KEY = "..."
+OPENAI_REPO_MODEL = "gpt-5-mini"
+OPENAI_PORTFOLIO_MODEL = "gpt-5.4"
+OPENAI_FINAL_REPORT_MODEL = "gpt-5.4"
+
+GITHUB_OAUTH_CLIENT_ID = "..."
+GITHUB_OAUTH_CLIENT_SECRET = "..."
+GITHUB_OAUTH_REDIRECT_URI = "https://your-app-url.streamlit.app"
+GITHUB_OAUTH_SCOPE = "read:user user:email"
+```
+
+Notes:
+
+- `GITHUB_OAUTH_REDIRECT_URI` must exactly match the deployed app URL configured in your GitHub OAuth app.
+- The app can run without OAuth if users only enter public usernames, but OAuth should be configured for the full public flow.
+- The higher-quality PDF path uses Playwright/Chromium. If the deployment runtime cannot use Chromium, the app falls back to the ReportLab PDF path instead of failing outright.
+- Persistent caching currently uses local SQLite storage. That is acceptable for a single-instance deployment, but it is not yet a shared distributed cache.
+
+Hosted smoke-test checklist:
+
+- public username flow
+- GitHub OAuth sign-in flow
+- single-repo analysis
+- multi-repo analysis
+- cached rerun
+- `Force refresh analysis`
+- Markdown export
+- PDF export
 
 ## Testing
 
