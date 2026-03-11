@@ -42,15 +42,7 @@ Short OAuth sign-in demo: [docs/recordings/oauth_login_demo.mp4](docs/recordings
 
 ### Single Repository Audit View
 
-![Single repository audit](docs/screenshots/singlerepo_forcefresh_analysis.jpg)
-
-### Cached Analysis State
-
-![Loaded from cache](docs/screenshots/analysis_loadedfrom_cache.jpg)
-
-### Multi-Repository Analysis View
-
-![Multi-repository selection](docs/screenshots/multirepo_analysis_selectionview.jpg)
+![Single repository audit](docs/screenshots/single_repo_summary.jpg)
 
 ### Portfolio Summary View
 
@@ -69,7 +61,7 @@ Short OAuth sign-in demo: [docs/recordings/oauth_login_demo.mp4](docs/recordings
 ## Demo Recordings
 
 - GitHub OAuth login demo: [docs/recordings/oauth_login_demo.mp4](docs/recordings/oauth_login_demo.mp4)
-- Single-repository analysis and report download demo: [docs/recordings/single_repo_analysis_demo.mp4](docs/recordings/single_repo_analysis_demo.mp4)
+- Repository analysis demo: [docs/recordings/repo_analysis_demo.mp4](docs/recordings/repo_analysis_demo.mp4)
 - Full workflow demo (Google Drive, view-only): [full_app_workflow.mp4](https://drive.google.com/file/d/1ltMC_iUdZvX8DdhEx0Mlu6x72-OygTNV/view?usp=drive_link)
 
 ## Decision Records
