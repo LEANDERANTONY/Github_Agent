@@ -184,6 +184,12 @@ def _inject_styles():
                 margin: 0.35rem 0 1.2rem 0 !important;
             }
 
+            .single-shell-content-active,
+            .portfolio-shell-content-active {
+                background: #ffffff !important;
+                border-radius: inherit !important;
+            }
+
             .single-shell-active h3,
             .single-shell-active h4,
             .single-shell-active h5,
@@ -207,13 +213,11 @@ def _inject_styles():
                 margin: 0.35rem 0 1.2rem 0 !important;
             }
 
-            .portfolio-shell-active > div[data-testid="stVerticalBlock"] {
-                background: #ffffff !important;
-                border-radius: inherit !important;
+            .portfolio-shell-content-active {
                 gap: 0.3rem !important;
             }
 
-            .portfolio-shell-active > div[data-testid="stVerticalBlock"] > div:first-child {
+            .portfolio-shell-content-active > div:first-child {
                 margin-top: -0.28rem !important;
             }
 
@@ -975,13 +979,31 @@ def _activate_single_report_shell():
     components.html(
         """
         <script>
-        const marker = window.parent.document.getElementById("single-shell-marker");
-        if (marker) {
+        const activateSingleShell = (attemptsLeft = 24) => {
+            const marker = window.parent.document.getElementById("single-shell-marker");
+            if (!marker) {
+                if (attemptsLeft > 0) {
+                    window.setTimeout(() => activateSingleShell(attemptsLeft - 1), 50);
+                }
+                return;
+            }
+
             const wrapper = marker.closest('div[data-testid="stVerticalBlockBorderWrapper"]');
             if (wrapper) {
                 wrapper.classList.add("single-shell-active");
+                const content = wrapper.firstElementChild;
+                if (content) {
+                    content.classList.add("single-shell-content-active");
+                }
+                return;
             }
-        }
+
+            if (attemptsLeft > 0) {
+                window.setTimeout(() => activateSingleShell(attemptsLeft - 1), 50);
+            }
+        };
+
+        activateSingleShell();
         </script>
         """,
         height=0,
@@ -1004,6 +1026,10 @@ def _activate_portfolio_shell():
             const wrapper = marker.closest('div[data-testid="stVerticalBlockBorderWrapper"]');
             if (wrapper) {
                 wrapper.classList.add("portfolio-shell-active");
+                const content = wrapper.firstElementChild;
+                if (content) {
+                    content.classList.add("portfolio-shell-content-active");
+                }
                 return;
             }
 
