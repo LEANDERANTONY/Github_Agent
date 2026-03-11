@@ -208,11 +208,22 @@ Closed the first public deployment loop and added the initial repository-quality
 - added a GitHub Actions workflow that installs dependencies and runs the current unit-test suite on pushes and pull requests
 - refreshed README status/roadmap wording so it reflects the hosted app and the shift toward GitHub-side polish
 
+## March 12, 2026 - Final Repo Polish and Product Vision
+
+Closed the main repository-presentation loop after deployment:
+
+- refreshed README screenshots so they reflect the current hosted dark-theme UI more accurately
+- cleaned up demo recordings and kept the README demo links aligned with the current asset names
+- added CI, license, and live-app badges near the top of the README
+- finalized the hosted app link and GitHub-side presentation cues around the deployed Streamlit app
+- added `ROADMAP.md` to capture the longer-term vision around a stronger backend, hosted/shared persistence, containerized deployment, and future repository RAG / Q&A workflows
+- updated report/export wording so `Recommendations` and `Key Technologies` stay consistent across the UI and generated outputs
+
 ---
 
 ## Next Steps
 
-- finish GitHub-side polish: topics, homepage/demo link, and optional badges
-- continue deployment hardening for hosted runtime edge cases such as Playwright availability and SQLite persistence constraints
+- continue deployment hardening for hosted runtime edge cases such as Playwright availability, hosted OAuth behavior, and SQLite persistence constraints
 - decide whether SQLite remains sufficient for hosted single-instance use or needs to be replaced later
+- consider a stronger production architecture with a dedicated backend, hosted/shared database, and containerized deployment path
 - future product upgrade path: optional repository RAG / Q&A mode for deeper codebase exploration
