@@ -427,6 +427,19 @@ def _inject_styles():
                 overflow: hidden;
             }
 
+            .stExpander details summary,
+            .stExpander details summary:hover,
+            .stExpander details summary:focus,
+            .stExpander details summary:focus-visible,
+            .stExpander details[open] summary {
+                background: #ffffff !important;
+                color: var(--ink) !important;
+            }
+
+            .stExpander details summary svg {
+                fill: var(--ink) !important;
+            }
+
             .stExpander details summary p {
                 font-weight: 700;
                 color: var(--ink) !important;
