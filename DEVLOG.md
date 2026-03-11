@@ -198,13 +198,21 @@ Hardened the hosted Streamlit experience around GitHub sign-in and report export
 - kept repository-audit expander headers visually stable after interaction in the multi-repo report view
 - changed PDF export so the expensive PDF generation starts only when the user clicks the download button instead of when they merely switch the format selector
 
+## March 11, 2026 - Hosted Deployment and Baseline CI
+
+Closed the first public deployment loop and added the initial repository-quality automation:
+
+- documented and configured the Streamlit Community Cloud deployment path with a tracked secrets template
+- deployed the live app to `portfolio-reviewer-agent.streamlit.app`
+- updated hosted OAuth/runtime behavior to work with Streamlit Cloud's external navigation model
+- added a GitHub Actions workflow that installs dependencies and runs the current unit-test suite on pushes and pull requests
+- refreshed README status/roadmap wording so it reflects the hosted app and the shift toward GitHub-side polish
+
 ---
 
 ## Next Steps
 
-- deployment setup for public usage
-- final deployment-oriented configuration and secrets hardening
-- update the GitHub OAuth callback URL and verify browser sign-in on the deployed app
-- validate end-to-end hosted flows for single-repo, multi-repo, cache hit, force refresh, and export behavior
+- finish GitHub-side polish: topics, homepage/demo link, and optional badges
+- continue deployment hardening for hosted runtime edge cases such as Playwright availability and SQLite persistence constraints
 - decide whether SQLite remains sufficient for hosted single-instance use or needs to be replaced later
 - future product upgrade path: optional repository RAG / Q&A mode for deeper codebase exploration

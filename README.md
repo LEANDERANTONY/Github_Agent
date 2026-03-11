@@ -2,6 +2,8 @@
 
 GitHub Portfolio Reviewer Agent is a Streamlit app that audits a GitHub profile or a selected set of repositories and turns the result into a recruiter-facing report.
 
+Live app: [portfolio-reviewer-agent.streamlit.app](https://portfolio-reviewer-agent.streamlit.app)
+
 The app combines:
 
 - GitHub API metadata and repository content checks
@@ -108,6 +110,7 @@ For portfolio-level analysis, the app also:
 - HTML/CSS PDF rendering via Playwright with a ReportLab fallback path
 - Graceful fallback and warning handling for GitHub, OAuth, OpenAI, and export failures
 - Parallelized GitHub repo-detail fetching with retry handling for transient API failures
+- GitHub Actions CI for automated unit-test validation on pushes and pull requests
 
 ## Scoring Model
 
@@ -341,8 +344,8 @@ venv\Scripts\python.exe -m unittest tests.test_analysis_store tests.test_report_
 
 ## Roadmap
 
-- deployment setup for public usage
 - hosted persistence/secrets strategy for multi-instance deployment
+- GitHub-side polish such as repo topics, homepage/demo link, and optional status badges
 - optional repository Q&A / RAG mode for deeper codebase exploration
 - deeper export branding and report theming
 
@@ -354,4 +357,4 @@ venv\Scripts\python.exe -m unittest tests.test_analysis_store tests.test_report_
 
 ## Status
 
-This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, persistent analysis caching, deterministic report generation, export flow, polished Streamlit interface, public-only GitHub OAuth sign-in, cache-aware UX, retry-aware GitHub fetching, and broader failure-path coverage are implemented. The next major product milestone is deployment hardening.
+This repository is now beyond the initial MVP stage. The core audit pipeline, scoped analysis flow, persistent analysis caching, deterministic report generation, export flow, polished Streamlit interface, public-only GitHub OAuth sign-in, cache-aware UX, retry-aware GitHub fetching, broader failure-path coverage, hosted Streamlit deployment, and baseline GitHub Actions CI are implemented. The next major product milestone is GitHub-side polish and longer-term hosting hardening.
