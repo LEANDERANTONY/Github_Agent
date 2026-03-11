@@ -9,6 +9,7 @@ from src.github_auth import (
     build_authorize_url,
     consume_oauth_state,
     exchange_code_for_token,
+    generate_oauth_state,
     get_authenticated_user,
     oauth_is_configured,
     register_oauth_state,
@@ -120,6 +121,19 @@ class GithubAuthTestCase(unittest.TestCase):
         params = parse_qs(urlparse(url).query)
 
         self.assertEqual(["read:user user:email"], params["scope"])
+
+    @patch("src.github_auth.load_github_oauth_client_secret", return_value="secret-456")
+    def test_generated_oauth_state_is_valid_without_registry(self, _mock_client_secret):
+        state = generate_oauth_state()
+
+        self.assertTrue(consume_oauth_state(state, registry={}))
+
+    @patch("src.github_auth.load_github_oauth_client_secret", return_value="secret-456")
+    def test_generated_oauth_state_rejects_tampering(self, _mock_client_secret):
+        state = generate_oauth_state()
+        tampered_state = state[:-1] + ("a" if state[-1] != "a" else "b")
+
+        self.assertFalse(consume_oauth_state(tampered_state, registry={}))
 
 
 if __name__ == "__main__":

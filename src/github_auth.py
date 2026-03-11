@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import hmac
 import secrets
 import time
 
@@ -20,6 +23,32 @@ OAUTH_STATE_TTL_SECONDS = 600
 _OAUTH_STATE_REGISTRY = {}
 
 
+def _urlsafe_b64encode(value):
+    return base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
+
+
+def _sign_oauth_state(payload):
+    client_secret = load_github_oauth_client_secret(required=True).encode("utf-8")
+    signature = hmac.new(client_secret, payload.encode("utf-8"), hashlib.sha256).digest()
+    return _urlsafe_b64encode(signature)
+
+
+def _validate_signed_oauth_state(state, now=None):
+    try:
+        nonce, issued_at, provided_signature = state.split(".", 2)
+        issued_at_value = int(issued_at)
+    except (AttributeError, ValueError):
+        return False
+
+    current_time = int(now or time.time())
+    if current_time - issued_at_value > OAUTH_STATE_TTL_SECONDS:
+        return False
+
+    payload = "{nonce}.{issued_at}".format(nonce=nonce, issued_at=issued_at)
+    expected_signature = _sign_oauth_state(payload)
+    return hmac.compare_digest(provided_signature, expected_signature)
+
+
 def oauth_is_configured():
     return bool(
         load_github_oauth_client_id(required=False)
@@ -29,7 +58,11 @@ def oauth_is_configured():
 
 
 def generate_oauth_state():
-    return secrets.token_urlsafe(24)
+    nonce = secrets.token_urlsafe(24)
+    issued_at = str(int(time.time()))
+    payload = "{nonce}.{issued_at}".format(nonce=nonce, issued_at=issued_at)
+    signature = _sign_oauth_state(payload)
+    return "{payload}.{signature}".format(payload=payload, signature=signature)
 
 
 def _purge_expired_oauth_states(now=None, registry=None):
@@ -54,7 +87,9 @@ def consume_oauth_state(state, registry=None):
     registry = _OAUTH_STATE_REGISTRY if registry is None else registry
     _purge_expired_oauth_states(registry=registry)
     created_at = registry.pop(state, None)
-    return created_at is not None
+    if created_at is not None:
+        return True
+    return _validate_signed_oauth_state(state)
 
 
 def build_authorize_url(state):
