@@ -1,5 +1,4 @@
 import html
-import json
 import textwrap
 from datetime import datetime
 
@@ -1054,7 +1053,6 @@ def _init_auth_state():
     auth_defaults = {
         "github_auth_login": "",
         "github_auth_error": "",
-        "github_auth_redirect_url": "",
         "github_oauth_states": {},
     }
     for key, value in auth_defaults.items():
@@ -1074,7 +1072,6 @@ def _clear_query_params():
 def _disconnect_github_auth():
     st.session_state.github_auth_login = ""
     st.session_state.github_auth_error = ""
-    st.session_state.github_auth_redirect_url = ""
     _reset_loaded_data()
     _clear_query_params()
 
@@ -1147,21 +1144,12 @@ def _render_auth_panel():
         "Connect GitHub",
         "Authorize the app to identify your GitHub account and analyze its public repositories.",
     )
-    if st.button("Sign in with GitHub", key="github-oauth-signin"):
-        st.session_state.github_auth_redirect_url = authorize_url
-
-    if st.session_state.get("github_auth_redirect_url"):
-        redirect_url = st.session_state.github_auth_redirect_url
-        components.html(
-            """
-            <script>
-            window.top.location.replace(%s);
-            </script>
-            """
-            % json.dumps(redirect_url),
-            height=0,
-        )
-        st.session_state.github_auth_redirect_url = ""
+    st.markdown(
+        '<a class="oauth-link" href="{url}" target="_self" rel="noopener noreferrer">Sign in with GitHub</a>'.format(
+            url=_escape(authorize_url)
+        ),
+        unsafe_allow_html=True,
+    )
     st.markdown('<div class="auth-divider">or</div>', unsafe_allow_html=True)
 
 
