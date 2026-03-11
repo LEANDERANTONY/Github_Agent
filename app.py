@@ -990,13 +990,27 @@ def _activate_portfolio_shell():
     components.html(
         """
         <script>
-        const marker = window.parent.document.getElementById("portfolio-shell-marker");
-        if (marker) {
+        const activatePortfolioShell = (attemptsLeft = 24) => {
+            const marker = window.parent.document.getElementById("portfolio-shell-marker");
+            if (!marker) {
+                if (attemptsLeft > 0) {
+                    window.setTimeout(() => activatePortfolioShell(attemptsLeft - 1), 50);
+                }
+                return;
+            }
+
             const wrapper = marker.closest('div[data-testid="stVerticalBlockBorderWrapper"]');
             if (wrapper) {
                 wrapper.classList.add("portfolio-shell-active");
+                return;
             }
-        }
+
+            if (attemptsLeft > 0) {
+                window.setTimeout(() => activatePortfolioShell(attemptsLeft - 1), 50);
+            }
+        };
+
+        activatePortfolioShell();
         </script>
         """,
         height=0,
