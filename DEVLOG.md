@@ -219,6 +219,15 @@ Closed the main repository-presentation loop after deployment:
 - added `ROADMAP.md` to capture the longer-term vision around a stronger backend, hosted/shared persistence, containerized deployment, and future repository RAG / Q&A workflows
 - updated report/export wording so `Recommendations` and `Key Technologies` stay consistent across the UI and generated outputs
 
+## March 12, 2026 - App Preview and Onboarding Polish
+
+Added a final small pass focused on first impression and hosted app discoverability:
+
+- changed the app page icon to a robot emoji so the hosted app reads more clearly as an AI agent
+- enabled Streamlit's wide layout and kept the sidebar collapsed by default for a cleaner app-first presentation
+- added an in-app `How it works` expander below the hero section for first-time users
+- tightened the top README description so Streamlit share previews and repository summaries read more clearly
+
 ---
 
 ## Next Steps
