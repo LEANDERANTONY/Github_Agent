@@ -767,6 +767,23 @@ def _render_intro():
     )
 
 
+def _render_how_it_works():
+    with st.expander("How it works"):
+        st.markdown(
+            textwrap.dedent(
+                """
+                1. Sign in with GitHub or enter a public GitHub username.
+                2. Load repositories from that profile.
+                3. Choose `Single repository`, `Selected repositories`, or `Portfolio slice`.
+                4. Run the analysis to generate scored, recruiter-facing feedback.
+                5. Export the result as Markdown or PDF.
+
+                Use `Force refresh analysis` when you want to bypass the saved cache and regenerate the report.
+                """
+            ).strip()
+        )
+
+
 def _render_metric_card(label, value, note, label_badge=None, emphasize=False):
     badge_html = ""
     if label_badge:
@@ -1404,7 +1421,12 @@ def _render_downloads(report, github_username):
 
 
 def main():
-    st.set_page_config(page_title="GitHub Portfolio Reviewer", page_icon="GitHub")
+    st.set_page_config(
+        page_title="GitHub Portfolio Reviewer",
+        page_icon="🤖",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
     _inject_styles()
     _init_auth_state()
     try:
@@ -1412,6 +1434,7 @@ def main():
     except Exception as error:
         st.session_state.github_auth_error = _error_message(error)
     _render_intro()
+    _render_how_it_works()
     _render_auth_panel()
 
     with st.form("repo_catalog_form", clear_on_submit=False):

@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Live App](https://img.shields.io/badge/Live%20App-Streamlit-2563eb?logo=streamlit&logoColor=white)](https://portfolio-reviewer-agent.streamlit.app)
 
-GitHub Portfolio Reviewer Agent is a Streamlit app that audits a GitHub profile or a selected set of repositories and turns the result into a recruiter-facing report.
+GitHub Portfolio Reviewer Agent is a Streamlit app that audits GitHub repositories and profiles, scores portfolio quality, and generates recruiter-facing improvement reports.
 
 Live app: [portfolio-reviewer-agent.streamlit.app](https://portfolio-reviewer-agent.streamlit.app)
 
