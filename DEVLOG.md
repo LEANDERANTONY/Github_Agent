@@ -4,6 +4,16 @@ This log tracks the major implementation milestones for the current modular Stre
 
 ---
 
+## March 13, 2026 - Python 3.11 and uv Environment Standardization
+
+Standardized local development and CI around a reproducible Python toolchain:
+
+- added `pyproject.toml` so direct dependencies are declared in one place
+- targeted Python `3.11` explicitly with a tracked `.python-version`
+- switched CI to `uv sync --frozen` and `uv run`
+- updated the devcontainer bootstrap flow to sync dependencies with uv
+- prepared the repository for a pinned `requirements.txt` exported from the uv lockfile
+
 ## March 7, 2026 - Modular Audit Pipeline
 
 Implemented the current application architecture:

@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import closing
 from dataclasses import asdict
 from datetime import datetime, timezone
 from hashlib import sha256
@@ -23,7 +24,7 @@ def _connect(db_path=None):
 
 
 def initialize_analysis_store(db_path=None):
-    with _connect(db_path) as connection:
+    with closing(_connect(db_path)) as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS analysis_cache (
@@ -156,7 +157,7 @@ def _report_from_payload(payload):
 def load_cached_report(analysis_key, freshness_signature, db_path=None):
     initialize_analysis_store(db_path=db_path)
 
-    with _connect(db_path) as connection:
+    with closing(_connect(db_path)) as connection:
         row = connection.execute(
             """
             SELECT report_json, updated_at
@@ -184,7 +185,7 @@ def save_cached_report(analysis_key, github_username, freshness_signature, repor
     serialized_report = json.dumps(asdict(report), ensure_ascii=True)
     timestamp = datetime.now(timezone.utc).isoformat()
 
-    with _connect(db_path) as connection:
+    with closing(_connect(db_path)) as connection:
         connection.execute(
             """
             INSERT INTO analysis_cache (

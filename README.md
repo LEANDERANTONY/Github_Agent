@@ -183,19 +183,20 @@ Module responsibilities:
 
 ## Setup
 
-### 1. Create and activate a virtual environment
+### 1. Install uv and Python 3.11
 
 ```powershell
-python -m venv venv
-venv\Scripts\activate
+uv python install 3.11
 ```
 
-### 2. Install dependencies
+### 2. Sync the project environment
 
 ```powershell
-pip install -r requirements.txt
-venv\Scripts\python.exe -m playwright install chromium
+uv sync --python 3.11
+uv run playwright install chromium
 ```
+
+This project now targets Python `3.11` explicitly via [`.python-version`](.python-version) and [pyproject.toml](pyproject.toml). The checked-in `requirements.txt` is an exported, pinned snapshot of the uv lockfile for reproducible installs.
 
 ### 3. Add credentials
 
@@ -233,7 +234,7 @@ OAuth scope default:
 ## Running the App
 
 ```powershell
-streamlit run app.py
+uv run streamlit run app.py
 ```
 
 Then:
