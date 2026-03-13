@@ -12,7 +12,7 @@ Standardized local development and CI around a reproducible Python toolchain:
 - targeted Python `3.11` explicitly with a tracked `.python-version`
 - switched CI to `uv sync --frozen` and `uv run`
 - updated the devcontainer bootstrap flow to sync dependencies with uv
-- prepared the repository for a pinned `requirements.txt` exported from the uv lockfile
+- standardized dependency installation on `pyproject.toml` plus `uv.lock`
 
 ## March 7, 2026 - Modular Audit Pipeline
 

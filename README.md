@@ -196,7 +196,7 @@ uv sync --python 3.11
 uv run playwright install chromium
 ```
 
-This project now targets Python `3.11` explicitly via [`.python-version`](.python-version) and [pyproject.toml](pyproject.toml). The checked-in `requirements.txt` is an exported, pinned snapshot of the uv lockfile for reproducible installs.
+This project now targets Python `3.11` explicitly via [`.python-version`](.python-version). Dependency management is standardized on [pyproject.toml](pyproject.toml) plus [uv.lock](uv.lock), with `uv sync` as the install path.
 
 ### 3. Add credentials
 
