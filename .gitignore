@@ -216,6 +216,7 @@ github_token.txt
 .streamlit/secrets.toml
 
 # local notes and logs
+improvements.md
 Github_Agent.txt
 streamlit.log
 streamlit.err.log
