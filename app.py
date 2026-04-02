@@ -119,10 +119,10 @@ def _inject_styles():
             .repo-shell {
                 background: #ffffff !important;
                 border: 1px solid var(--surface-line);
-                border-radius: 18px;
-                padding: 1rem;
+                border-radius: 16px;
+                padding: 0.78rem 0.88rem;
                 margin-top: -0.3rem;
-                margin-bottom: 0.72rem;
+                margin-bottom: 0.58rem;
                 box-shadow: var(--shadow);
             }
 
@@ -147,14 +147,15 @@ def _inject_styles():
             }
 
             .repo-shell h4 {
-                margin: 0 0 0.25rem;
-                font-size: 1.15rem;
+                margin: 0 0 0.16rem;
+                font-size: 1.02rem;
                 color: var(--ink);
             }
 
             .repo-meta {
                 color: var(--muted);
-                font-size: 0.92rem;
+                font-size: 0.86rem;
+                line-height: 1.4;
             }
 
             .single-shell-marker {
