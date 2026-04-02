@@ -95,28 +95,22 @@ def _inject_styles():
                 background: #ffffff !important;
                 border: 1px solid var(--surface-line);
                 border-radius: 24px;
-                padding: 1.4rem 1.5rem;
+                padding: 1.02rem 1.3rem;
                 box-shadow: var(--shadow);
-                margin-bottom: 1rem;
-            }
-
-            .audit-kicker {
-                text-transform: uppercase;
-                letter-spacing: 0.16em;
-                font-size: 0.72rem;
-                color: var(--accent-strong);
-                font-weight: 700;
-                margin-bottom: 0.35rem;
+                margin-bottom: 0.82rem;
             }
 
             .audit-hero h1 {
                 color: var(--ink);
+                font-size: 2.1rem;
+                line-height: 1.08;
+                margin: 0 0 0.18rem 0;
             }
 
             .audit-copy {
                 color: #2563eb !important;
-                font-size: 1rem;
-                line-height: 1.6;
+                font-size: 0.96rem;
+                line-height: 1.45;
                 font-weight: 500;
                 opacity: 1 !important;
                 margin: 0;
@@ -754,11 +748,9 @@ def _render_intro():
         textwrap.dedent(
             """
             <div class="audit-hero">
-                <div class="audit-kicker">Portfolio Auditor</div>
-                <h1 style="margin:0 0 0.45rem 0;">GitHub Portfolio Reviewer Agent</h1>
+                <h1>GitHub Portfolio Reviewer Agent</h1>
                 <p class="audit-copy">
-                    Load a GitHub profile, pick the analysis scope, and generate a recruiter-facing
-                    audit with deterministic checks, repository scoring, and model-written feedback.
+                    Audit GitHub repositories with deterministic checks and recruiter-facing feedback.
                 </p>
             </div>
             """
